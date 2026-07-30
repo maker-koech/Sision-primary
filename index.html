@@ -879,7 +879,20 @@ function calcSubjectRanks(combinedList) {
 
 // ─── INITIAL LEARNER DATA ─────────────────────────────────────────────────────
 const INITIAL_LEARNERS = {
-  "1": { "": [] },
+  "1": { "": [
+    {name:"MARTIN KAROBIA"},{name:"ANGELA NYAGUTHII"},{name:"ALOICE MBURU"},{name:"JOY NJAMBI"},
+    {name:"MARVEL WAMBUI"},{name:"KARL KANJA"},{name:"JOYLINE WANGARI"},{name:"CECILIA MUGURE"},
+    {name:"FAVOUR WAMBUI"},{name:"AMELIA NJERI"},{name:"SELINA WANJIRU"},{name:"PRINCESS WACHEKE"},
+    {name:"DAVID NGINYO"},{name:"IRENE WANJIRU"},{name:"TERESIA MUGURE"},{name:"BRAVIN GACHIE"},
+    {name:"GEORGE KARANI"},{name:"EMMANUEL MBUGUA"},{name:"ANNE GATHONI"},{name:"HARRISON NJENGA"},
+    {name:"KEAGAN KIRUKU"},{name:"LEVY MWANGI"},{name:"JOSEPH NKURUMAH"},{name:"DORCAS WAMBUI"},
+    {name:"DAVID MACHARIA"},{name:"BENSON KARIUKI"},{name:"JOHN NJONGORO"},{name:"YVONNE MUTHONI"},
+    {name:"ELIZABETH WANGARI"},{name:"MILKAH WANJIRU"},{name:"JOHN KARANJA"},{name:"EMMANUEL MACHARIA"},
+    {name:"JOHN CHEGE"},{name:"OLIVIA ANGEL KIBUGI"},{name:"RYAN CHEGE"},{name:"SIMON KINYANJUI"},
+    {name:"FRANCIS KIMANI"},{name:"LEWIS NJUGUNA"},{name:"BRIAN MAINA"},{name:"ANNE WAMBUI"},
+    {name:"STEPHEN KAMAU"},{name:"ROBERT NJOROGE"},{name:"VINCENT KANYORA"},{name:"ANN WACERA"},
+    {name:"BETH WANJIRU"},{name:"WILSON KASEKWA"},{name:"STEPHEN NJOROGE"},{name:"FABIAN GATHAKU"},
+  ]},
   "2": { "": [
     {name:"ZIPPORAH WANJIRU"},{name:"JANE WANGUI"},{name:"IAN MWANGI"},{name:"ALICIOUS ANGEL"},
     {name:"DANIEL KAMAU"},{name:"LEAH NYAMBURA"},{name:"LEAH WANJIRU"},{name:"BEAUTRICE WANJIRU"},
@@ -896,8 +909,43 @@ const INITIAL_LEARNERS = {
     {name:"PETER KIMANI"},{name:"DAVID CHEGE"},{name:"DAVID THUKU"},{name:"MIRIAM WANJIKU"},
     {name:"PURITY MUMBI"},
   ]},
-  "3": { "": [] },
-  "4": { "": [] },
+  "3": { "": [
+    {name:"GEORGE NGUGI"},{name:"SHANTEL NJERI"},{name:"BLESSING WAMBUI"},{name:"ROSEBANCY WANJIRU"},
+    {name:"JOSEPH IGUANYA"},{name:"JOYCE WACUKA"},{name:"ROBERT MUNGAI"},{name:"ELIZABETH WANGUI"},
+    {name:"BETH WANJIKU"},{name:"JOAN NJERI"},{name:"JOSEPH MWANGI"},{name:"GEORGE NDUATI"},
+    {name:"MALCOM KARANJA"},{name:"ETANA WANJIRU"},{name:"JEMIMAH WANJIRU"},{name:"JOHN MUNGAI"},
+    {name:"RUTH WAMBUI"},{name:"JOHN KIMANI"},{name:"ELIZABETH RUGURU"},{name:"NICKSON NGUGI"},
+    {name:"JOSPHINE WANGUI"},{name:"FRANCIS NJENGA"},{name:"JIAN KIMANI"},{name:"JOSEPH GACUNGA"},
+    {name:"LUSET WAITHERA"},{name:"ELIZABETH WANJIKU"},{name:"LOISE NYATHIRA"},{name:"GLADYS WANGARI"},
+    {name:"MIRRIAM WANJIKU"},{name:"MARY WAITHERA"},{name:"CORNELIUS KIAMA"},{name:"BENSON MAINA"},
+    {name:"WINROSE WANGARI"},{name:"EVALYNE WAIRIMU"},{name:"CARSON MAKUMI"},{name:"TABITHA MURINGE"},
+    {name:"SAMUEL NJOROGE"},{name:"JAMES KIMANI"},{name:"CECILIA MUGURE"},{name:"SHANTEL NYAMBURA"},
+    {name:"JOSEPH NJUGUNA"},{name:"LYAN WAMBUGU"},{name:"MICHAEL IHUGO"},{name:"JOSHUA KIARIE"},
+    {name:"MOSES MWANGI"},{name:"TERESIAH WANJIRU"},{name:"FRANCIS MWAURA"},{name:"SAMUEL WAINAINA"},
+    {name:"LAWRENCE NJENGA"},{name:"MINNE MUTHONI"},{name:"LEWIS MWANGI"},{name:"DANIEL GICHOHI"},
+    {name:"JAMES KUNGU"},{name:"HANNAH WAMBUI"},{name:"JOHN GACHUIRI"},{name:"STEPHEN THIONGO"},
+    {name:"JOSEPH NJOROGE"},{name:"PATRICK CHEGE"},
+  ]},
+  "4": { "": [
+    {name:"EUNICE NDUNGU"},{name:"BLESSED MBUGUA"},{name:"DANSON GACHIE"},{name:"CONSTANT YANIS"},
+    {name:"MARVEL MBUGUA"},{name:"PAUL CHEGE"},{name:"MONICA WAMBUI"},{name:"CLAIRE WANGUI"},
+    {name:"GRACE WAIRIMU"},{name:"PETER KIMANI"},{name:"ANTONY KABIRU"},{name:"TANYA WACUKA"},
+    {name:"EMMANUEL MWAURA"},{name:"CHRISTABEL WANGARI"},{name:"RAHAB GATHONI"},{name:"DAVID MUNGAI"},
+    {name:"PROMISE MAINA"},{name:"MICHAEL NJENGA"},{name:"JAMES GITHINJI"},{name:"VINCENT NJENGA"},
+    {name:"FAITH WANGUI"},{name:"BENARD MUIGAI"},{name:"MARGARET WANJIRU"},{name:"JOSEPH GACHUNGA"},
+    {name:"MARY WAMBUI"},{name:"JAMES KARANJA"},{name:"VIOLET BOKE"},{name:"MARGARET NYOKABI"},
+    {name:"CELESTINE KERUBO"},{name:"JOY WAMBUI"},{name:"MARIA WAMBUI"},{name:"CYTHIA WAIRIMU"},
+    {name:"CHRISTINE WAIRIMU"},{name:"JOY NYAMBURA"},{name:"LEWIS WAWERU"},{name:"NATALIE NYOKABI"},
+    {name:"IAN KAIRU"},{name:"MIRIAM WAMBUI"},{name:"JOHN KAMAU"},{name:"NAOMI WAMBUI"},
+    {name:"JOYANNE NJERI"},{name:"PATRICIA NJERI"},{name:"ALEX WAINAINA"},{name:"BRIAN NJOROGE"},
+    {name:"JOSEPH NDUNGU"},{name:"FLORENCE NYOKABI"},{name:"JAMES NJOROGE"},{name:"GEORGE GIKABA"},
+    {name:"PRECIOUS NYAWIRA"},{name:"SARAH NJERI"},{name:"WILFRED MBUGUA"},{name:"PENINAH MUMBI"},
+    {name:"RUTH NYAMBURA"},{name:"CHARITY WANJIKU"},{name:"LEE MWANGI"},{name:"GRACE WANJIKU"},
+    {name:"FRANCIS NJOROGE"},{name:"WILLIAM KUNGU"},{name:"JECINTA WAMBUI"},{name:"SHEITON KIARIE"},
+    {name:"GRACE NJERI"},{name:"JOHN NDIRANGU"},{name:"GODFREY NJUGE"},{name:"AGNES WANGUI"},
+    {name:"AGNES WAMBUI"},{name:"CHARLES KAMAU"},{name:"MARGARET WAMBUI"},{name:"JOHN MAINA"},
+    {name:"DANIEL KIBE"},{name:"LUCY WANJIRU"},{name:"HANNAH NJERI"},{name:"JOSEPH MBATIA"},
+  ]},
   "5": { "": [] },
   "6": {
     "East": [
@@ -1540,7 +1588,7 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
         </div>
         {hasOverall && (
           <div style={RC.summaryItem}>
-            <div style={RC.sumLabel}>Grade 8 Position</div>
+            <div style={RC.sumLabel}>Grade {grade} Position</div>
             <div style={RC.sumVal}>{learner.overallRank||"–"}/{overallTotal}</div>
           </div>
         )}
