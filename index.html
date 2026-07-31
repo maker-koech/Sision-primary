@@ -758,13 +758,130 @@ function TeacherAdminScreen({ onDone }) {
   );
 }
 
+function GradingSystemScreen({ onDone }) {
+  const [bands, setBands] = useState(DEFAULT_GRADES.map(g => ({...g})));
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      if (GH) {
+        await loadDB(true);
+        const existing = await loadShared("gradingSystemOverride", null);
+        if (existing && Array.isArray(existing) && existing.length) {
+          setBands(existing.map(g => ({...g})));
+        }
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  function updateBand(i, field, value) {
+    setBands(prev => prev.map((b, idx) => idx===i ? {...b, [field]: value} : b));
+  }
+
+  function validate() {
+    // Bands must be sorted highest-to-lowest with no gaps or overlaps, and
+    // fully cover 0-100 so every possible score gets a band.
+    const sorted = [...bands].sort((a,b) => Number(b.min) - Number(a.min));
+    for (let i = 0; i < sorted.length; i++) {
+      const min = Number(sorted[i].min), max = Number(sorted[i].max);
+      if (isNaN(min) || isNaN(max) || min > max) return `${sorted[i].sub}: min must be less than or equal to max.`;
+      if (i === 0 && max !== 100) return `${sorted[i].sub} should end at 100 (it's the top band).`;
+      if (i === sorted.length-1 && min !== 0) return `${sorted[i].sub} should start at 0 (it's the bottom band).`;
+      if (i > 0) {
+        const prevMin = Number(sorted[i-1].min);
+        if (max + 1 !== prevMin) return `There's a gap or overlap between ${sorted[i].sub} and ${sorted[i-1].sub} — ${sorted[i].sub}'s max should be exactly one less than ${sorted[i-1].sub}'s min.`;
+      }
+    }
+    return "";
+  }
+
+  async function save() {
+    const err = validate();
+    if (err) { setError(err); return; }
+    setError("");
+    if (!GH) { alert("Not connected to GitHub. Connect first so this applies for everyone."); return; }
+    setSaving(true);
+    try {
+      const cleaned = bands.map(b => ({...b, min: Number(b.min), max: Number(b.max), points: Number(b.points)}));
+      const ok = await saveShared("gradingSystemOverride", cleaned);
+      if (ok) {
+        GRADES = cleaned;
+        setSaved(true);
+        setTimeout(()=>setSaved(false), 2000);
+      } else {
+        alert("Save failed. Check your internet connection and try again.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function resetToDefault() {
+    if (!window.confirm("Reset to the original EE 75-100 / ME 50-74 / AE 30-49 / BE 0-29 bands? This affects everyone.")) return;
+    setBands(DEFAULT_GRADES.map(g => ({...g})));
+  }
+
+  const bx = { maxWidth: 520, margin: "32px auto", background: "#fff", borderRadius: 14,
+    padding: "28px 22px", fontFamily: "-apple-system,sans-serif", boxShadow: "0 2px 20px rgba(0,0,0,0.10)" };
+  const inp = { width: "100%", padding: "9px 10px", border: "1px solid #ddd", borderRadius: 8,
+    fontSize: 14, marginTop: 4, boxSizing: "border-box" };
+  const btn = (bg) => ({ marginTop: 12, width: "100%", padding: 12, background: bg, color: "#fff",
+    border: "none", borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: "pointer" });
+
+  return (
+    <div style={{ background: "#eef2ff", minHeight: "100vh", padding: "16px 12px" }}>
+      <div style={bx}>
+        <div style={{ fontSize: 21, fontWeight: 800, marginBottom: 2 }}>📊 Edit Grading System</div>
+        <p style={{ fontSize: 13, color: "#555", margin: "4px 0 18px" }}>
+          Change the percentage ranges and points for each CBC band. Bands must cover 0-100 with no gaps between them.
+        </p>
+        {!GH && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 12 }}>Not connected to GitHub — connect first so changes apply for everyone.</div>}
+        {loading ? (
+          <div style={{ padding: 20, textAlign: "center", color: "#888" }}>Loading…</div>
+        ) : (
+          <div>
+            <div style={{ display: "flex", gap: 8, fontSize: 11, fontWeight: 700, color: "#666", marginBottom: 2 }}>
+              <div style={{ width: 50 }}>Band</div>
+              <div style={{ flex: 1 }}>Min %</div>
+              <div style={{ flex: 1 }}>Max %</div>
+              <div style={{ flex: 1 }}>Points</div>
+            </div>
+            {bands.map((b, i) => (
+              <div key={b.sub} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                <div style={{ width: 50, fontWeight: 800, fontSize: 14 }}>{b.sub}</div>
+                <input style={inp} type="number" min="0" max="100" value={b.min} onChange={e=>updateBand(i,"min",e.target.value)} />
+                <input style={inp} type="number" min="0" max="100" value={b.max} onChange={e=>updateBand(i,"max",e.target.value)} />
+                <input style={inp} type="number" min="1" value={b.points} onChange={e=>updateBand(i,"points",e.target.value)} />
+              </div>
+            ))}
+          </div>
+        )}
+        {error && <div style={{ color: "#c0392b", fontSize: 12.5, marginTop: 4, marginBottom: 4 }}>⚠ {error}</div>}
+        {saved && <div style={{ color: "#16a34a", fontSize: 12, marginBottom: 8 }}>✅ Saved! Applies everywhere immediately — report cards, PDFs, and distribution analysis.</div>}
+        <button style={btn("#1a56db")} onClick={save} disabled={saving || loading}>{saving ? "Saving…" : "💾 Save Grading System"}</button>
+        <button style={{...btn("#888"), marginTop: 8}} onClick={resetToDefault} disabled={loading}>↺ Reset to Default</button>
+        <button style={{ ...btn("#555"), marginTop: 6 }} onClick={onDone}>← Back</button>
+      </div>
+    </div>
+  );
+}
+
+
 // ─── GRADING ────────────────────────────────────────────────────────────────
-const GRADES = [
+const DEFAULT_GRADES = [
   { sub: "EE", level: "EE", min: 75, max: 100, points: 4, band: "Exceeding Expectations", remark: "Exceptional mastery; exceeds expectations" },
   { sub: "ME", level: "ME", min: 50, max: 74,  points: 3, band: "Meeting Expectations",   remark: "Solid understanding" },
   { sub: "AE", level: "AE", min: 30, max: 49,  points: 2, band: "Approaching Expectations", remark: "Developing understanding" },
   { sub: "BE", level: "BE", min: 0,  max: 29,  points: 1, band: "Below Expectations",     remark: "Needs support" },
 ];
+// GRADES is mutable (not the DEFAULT_GRADES constant) so an admin can edit the
+// band thresholds/points from within the app itself — the override is loaded
+// from shared storage and swapped in here, same pattern used for SUBJECTS.
+let GRADES = DEFAULT_GRADES;
 
 // ── Subject sets ────────────────────────────────────────────────────────
 // Lower Primary (Grades 1–3) and Upper Primary (Grades 4–6) use different
@@ -1873,6 +1990,7 @@ function App() {
 
   const [showSetup, setShowSetup] = useState(!GH);
   const [showTeacherAdmin, setShowTeacherAdmin] = useState(false);
+  const [showGradingSystem, setShowGradingSystem] = useState(false);
   const [generatingAllPDF, setGeneratingAllPDF] = useState(false);
 
   const [page, setPage]           = useState("home");
@@ -1959,6 +2077,25 @@ function App() {
     const activeGrade = isSubjectTeacherView ? subjectClass.grade : grade;
     SUBJECTS = getSubjectsForGrade(activeGrade);
   }
+
+  // Load any admin-saved grading system override once this device is
+  // connected. GRADES is a mutable global (like SUBJECTS), so once loaded it
+  // applies everywhere automatically — report cards, PDFs, distribution, etc.
+  const [gradesVersion, setGradesVersion] = useState(0);
+  useEffect(() => {
+    if (!GH) return;
+    (async () => {
+      try {
+        await loadDB(true);
+        const override = await loadShared("gradingSystemOverride", null);
+        if (override && Array.isArray(override) && override.length) {
+          GRADES = override;
+          setGradesVersion(v => v + 1);
+        }
+      } catch {}
+    })();
+  }, [GH ? 1 : 0]);
+
   const [subjectTerm, setSubjectTerm]       = useState(()=>localStorage.getItem("sision_last_term")||"Mid Term 2");
   const [subjectYear, setSubjectYear]       = useState(()=>localStorage.getItem("sision_last_year")||"2026");
   const [subjectList, setSubjectList]       = useState([]); // [{name, score}]
@@ -2953,6 +3090,7 @@ function renderNodeToPdfPage(doc, node) {
   }} />;
 
   if (showTeacherAdmin) return <TeacherAdminScreen onDone={() => { setShowTeacherAdmin(false); }} />;
+  if (showGradingSystem) return <GradingSystemScreen onDone={() => { setShowGradingSystem(false); }} />;
 
   if (page==="home") {
     // Determine if current grade is split (East/West) for home UI
@@ -2984,6 +3122,9 @@ function renderNodeToPdfPage(doc, node) {
           </button>}
           {userSession.role === "admin" && <button onClick={()=>setShowTeacherAdmin(true)} style={{fontSize:11,padding:"4px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:20,color:"#fff",cursor:"pointer"}}>
             ✏️ Manage Team
+          </button>}
+          {userSession.role === "admin" && <button onClick={()=>setShowGradingSystem(true)} style={{fontSize:11,padding:"4px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:20,color:"#fff",cursor:"pointer"}}>
+            📊 Edit Grading System
           </button>}
           {userSession.role === "admin" && <button onClick={()=>setShowWizard(true)} style={{fontSize:11,padding:"4px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:20,color:"#fff",cursor:"pointer"}}>
             🔄 Re-run Year Setup
