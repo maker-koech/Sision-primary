@@ -3116,6 +3116,9 @@ function renderNodeToPdfPage(doc, node) {
           Logged in as <b>{userSession.name}</b> ({userSession.role === "admin" ? "Administrator" : "Class Teacher"})
           {" · "}<button onClick={logout} style={{background:"none",border:"none",color:"#9ecbff",textDecoration:"underline",cursor:"pointer",fontSize:12,padding:0}}>Log out</button>
         </div>
+        <div style={{marginTop:2,fontSize:10.5,color:GH?"#9ecbff":"#ff9e9e"}}>
+          {GH ? `Connected to: ${GH.owner}/${GH.repo}` : "⚠ Not connected to GitHub"}
+        </div>
         <div style={{marginTop:8,display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
           {userSession.role === "admin" && <button onClick={()=>setShowSetup(true)} style={{fontSize:11,padding:"4px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:20,color:"#fff",cursor:"pointer"}}>
             ⚙ Database Settings / Teacher Link
@@ -3282,6 +3285,9 @@ function renderNodeToPdfPage(doc, node) {
     const clsLabel = `Grade ${subjectClass.grade}${subjectClass.stream?` ${subjectClass.stream}`:""}`;
     return (
       <div style={S.page}>
+        <div style={{padding:"4px 12px",fontSize:10.5,color:GH?"#555":"#c0392b",background:GH?"#f4f4f4":"#fdecea",textAlign:"center"}} className="no-print">
+          {GH ? `Connected to: ${GH.owner}/${GH.repo}` : "⚠ Not connected to GitHub — ask the admin to connect this device"}
+        </div>
         <div style={S.topBar} className="no-print">
           <button style={S.backBtn} onClick={logout}>← Log out</button>
           <div style={S.topTitle}>{subjectSession.name} · {subjectChoice} · {clsLabel}</div>
