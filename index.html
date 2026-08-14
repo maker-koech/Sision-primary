@@ -1642,7 +1642,7 @@ function PrintableClassList({ learners, grade, stream, term, year, classTeacher,
           )}
         </tbody>
       </table>
-      <div style={CL.footer}>Sision Junior School · {term} {year} · {label} · {new Date().toLocaleDateString()}</div>
+      <div style={CL.footer}>Sision Primary School · {term} {year} · {label} · {new Date().toLocaleDateString()}</div>
     </div>
   );
 }
@@ -1781,7 +1781,7 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
           {/* Exam progress table removed */}
         </div>
       </div>
-      <div style={RC.footer}>{term} {year} · Sision Junior School, Naivasha · Excellence Through Diligence</div>
+      <div style={RC.footer}>{term} {year} · Sision Primary School, Naivasha · Excellence Through Diligence</div>
     </div>
   );
 }
@@ -2962,7 +2962,7 @@ function renderNodeToPdfPage(doc, node) {
 
     doc.setFontSize(7.5);
     doc.setFont(undefined, "normal");
-    doc.text(`${term} ${year} · Sision Junior School, Naivasha`, 105, 290, { align: "center" });
+    doc.text(`${term} ${year} · Sision Primary School, Naivasha`, 105, 290, { align: "center" });
   }
 
   // All-report-forms download: fast vector drawing, one page per learner.
