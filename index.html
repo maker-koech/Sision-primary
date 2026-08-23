@@ -343,8 +343,8 @@ var e,a,n="function"==typeof Symbol?Symbol:{},t=n.iterator||"@@iterator",r=n.toS
 const { useState, useEffect, useRef } = React;
 
 // ─── GRADE LOCK ───────────────────────────────────────────────────────────────
-// Set to "7", "8", or "9" to lock this file to a specific grade.
-const GRADE_LOCK = null; // unlocked — combined app covers Grade 7, 8, 9
+// Set to "1"–"6" to lock this file to a specific grade.
+const GRADE_LOCK = null; // unlocked — combined app covers Grades 1–6
 // ─────────────────────────────────────────────────────────────────────────────
 // All marks are stored in db.json inside your GitHub repo via the GitHub API.
 // No Firebase, no external service — just GitHub.
@@ -367,6 +367,17 @@ let GH = resolveGHConfig();
 let DB_CACHE = null;
 let DB_SHA = null;
 
+// Module-level cache of the editable school name/county/motto, so any
+// component (login screen, printable class list, report card, PDF export)
+// can read the current value without needing it threaded through props.
+// Kept in sync with App()'s schoolConfig state whenever it loads or saves.
+let CURRENT_SCHOOL = { name: "Sision Primary School", county: "Naivasha", motto: "" };
+
+// Human-readable reason for the most recent save/sync failure, so alerts can
+// tell the user what actually went wrong instead of always blaming "your
+// internet connection" (the old, misleading catch-all message).
+let LAST_SYNC_ERROR = "";
+
 function ghH() {
   return { Authorization: `token ${GH.token}`, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" };
 }
@@ -374,35 +385,69 @@ function dbUrl() {
   return `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/db.json`;
 }
 
+// Wraps fetch with a hard timeout. On a slow/flaky mobile connection a plain
+// fetch() can hang indefinitely with no error and no feedback to the user —
+// this makes sure we always fail (and report) within a bounded time instead.
+async function fetchWithTimeout(url, options, timeoutMs) {
+  timeoutMs = timeoutMs === undefined ? 15000 : timeoutMs;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function loadDB(force) {
   if (DB_CACHE && !force) return DB_CACHE;
   if (!GH) return {};
   try {
-    const res = await fetch(dbUrl(), { headers: ghH() });
+    const res = await fetchWithTimeout(dbUrl(), { headers: ghH() });
     if (res.status === 404) { DB_CACHE = {}; DB_SHA = null; return {}; }
-    if (!res.ok) return DB_CACHE || {};
+    if (res.status === 401 || res.status === 403) {
+      LAST_SYNC_ERROR = "GitHub rejected the request (invalid token, or rate limit reached). Check the Setup screen's GitHub token.";
+      return DB_CACHE || {};
+    }
+    if (!res.ok) { LAST_SYNC_ERROR = `GitHub returned an error (status ${res.status}) while loading the latest data.`; return DB_CACHE || {}; }
     const j = await res.json();
     DB_SHA = j.sha;
     DB_CACHE = JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g, "")))));
     return DB_CACHE;
-  } catch { return DB_CACHE || {}; }
+  } catch (err) {
+    LAST_SYNC_ERROR = (err && err.name === "AbortError")
+      ? "The connection to GitHub timed out. Your network may be slow or unstable right now."
+      : "Could not reach GitHub. Check that you have an active internet connection.";
+    return DB_CACHE || {};
+  }
 }
 
-async function saveDB(db, retries) {
-  if (!GH) return false;
-  retries = retries === undefined ? 2 : retries;
+async function saveDB(db) {
+  if (!GH) { LAST_SYNC_ERROR = "Not connected to GitHub."; return false; }
   try {
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(db))));
     const body = { message: "Update marks", content, branch: "main" };
     if (DB_SHA) body.sha = DB_SHA;
-    const res = await fetch(dbUrl(), { method: "PUT", headers: ghH(), body: JSON.stringify(body) });
-    if (res.status === 409) return false; // let the caller re-fetch fresh + reapply, never blind-merge stale over fresh
-    if (!res.ok) return false;
+    const res = await fetchWithTimeout(dbUrl(), { method: "PUT", headers: ghH(), body: JSON.stringify(body) });
+    if (res.status === 409) {
+      LAST_SYNC_ERROR = "Someone else saved changes to this class at the same time. Retrying with the latest data…";
+      return false; // let the caller re-fetch fresh + reapply, never blind-merge stale over fresh
+    }
+    if (res.status === 401 || res.status === 403) {
+      LAST_SYNC_ERROR = "GitHub rejected the save (invalid token, or rate limit reached). Check the Setup screen's GitHub token.";
+      return false;
+    }
+    if (!res.ok) { LAST_SYNC_ERROR = `GitHub returned an error (status ${res.status}) while saving.`; return false; }
     const j = await res.json();
     DB_SHA = j.content.sha;
     DB_CACHE = db;
     return true;
-  } catch { return false; }
+  } catch (err) {
+    LAST_SYNC_ERROR = (err && err.name === "AbortError")
+      ? "The connection to GitHub timed out while saving. Your network may be slow or unstable right now."
+      : "Could not reach GitHub while saving. Check that you have an active internet connection.";
+    return false;
+  }
 }
 
 async function loadShared(key, fb) {
@@ -417,10 +462,11 @@ async function saveShared(key, data, retries) {
   retries = retries === undefined ? 3 : retries;
   if (!GH) return false;
   for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 600 * attempt));
     await loadDB(true);
     const db = DB_CACHE || {};
     db[key] = data;
-    const ok = await saveDB(db, 0);
+    const ok = await saveDB(db);
     if (ok) return true;
   }
   return false;
@@ -434,6 +480,7 @@ async function saveSubjectScores(key, subject, updatesByName, rosterNames, retri
   retries = retries === undefined ? 3 : retries;
   if (!GH) return false;
   for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 600 * attempt));
     await loadDB(true);
     const db = DB_CACHE || {};
     let arr = db[key];
@@ -447,7 +494,7 @@ async function saveSubjectScores(key, subject, updatesByName, rosterNames, retri
       return l;
     });
     db[key] = arr;
-    const ok = await saveDB(db, 0);
+    const ok = await saveDB(db);
     if (ok) return true;
   }
   return false;
@@ -485,12 +532,13 @@ async function saveScoresSafely(key, localList, baselineMap, retries) {
   retries = retries === undefined ? 3 : retries;
   if (!GH) return { ok: false, merged: null };
   for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 600 * attempt));
     await loadDB(true);
     const db = DB_CACHE || {};
     const freshList = db[key] || [];
     const merged = mergeScoresForSave(localList, freshList, baselineMap);
     db[key] = merged;
-    const ok = await saveDB(db, 0);
+    const ok = await saveDB(db);
     if (ok) return { ok: true, merged };
   }
   return { ok: false, merged: null };
@@ -499,6 +547,74 @@ async function saveScoresSafely(key, localList, baselineMap, retries) {
 async function listSharedKeys(prefix) {
   const db = await loadDB();
   return Object.keys(db).filter(k => k.startsWith(prefix));
+}
+
+// ─── SCHOOL SETTINGS (admin-editable — name, county, motto) ───────────────────
+function SchoolSettingsScreen({ schoolName, schoolCounty, schoolMotto, onSave, onDone }) {
+  const [name, setName] = useState(schoolName);
+  const [county, setCounty] = useState(schoolCounty);
+  const [motto, setMotto] = useState(schoolMotto);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const bx = { maxWidth: 520, margin: "32px auto", background: "#fff", borderRadius: 14,
+    padding: "28px 22px", fontFamily: "-apple-system,sans-serif", boxShadow: "0 2px 20px rgba(0,0,0,0.10)" };
+  const inp = { width: "100%", padding: "9px 11px", border: "1px solid #ddd", borderRadius: 8,
+    fontSize: 14, marginTop: 4, marginBottom: 14, boxSizing: "border-box" };
+  const btn = (bg) => ({ marginTop: 4, width: "100%", padding: 12, background: bg, color: "#fff",
+    border: "none", borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: "pointer" });
+  const lbl = { fontSize: 11, fontWeight: 700, color: "#444", textTransform: "uppercase", letterSpacing: 0.5 };
+
+  async function save() {
+    if (!GH) { alert("Not connected to GitHub. Connect first so this is shared with everyone."); return; }
+    setSaving(true);
+    try {
+      const data = { name, county, motto };
+      const ok = await saveShared("sision_school_config", data);
+      if (ok) {
+        onSave(data);
+        document.title = (name || "Results App") + " — Results";
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } else {
+        alert(`Save failed: ${LAST_SYNC_ERROR || "Unknown error."}`);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div style={{ background: "#eef2ff", minHeight: "100vh", padding: "16px 12px" }}>
+      <div style={bx}>
+        <div style={{ fontSize: 21, fontWeight: 800, marginBottom: 2 }}>🏫 School Settings</div>
+        <p style={{ fontSize: 13, color: "#555", margin: "4px 0 18px" }}>
+          Shown on the login screen, report cards, and class lists.
+        </p>
+        {!GH && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 12 }}>Not connected to GitHub — connect first so changes can be shared with everyone.</div>}
+
+        <label style={lbl}>School Name</label>
+        <input style={inp} value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Sision Primary School" />
+
+        <label style={lbl}>County / Location</label>
+        <input style={inp} value={county} onChange={e=>setCounty(e.target.value)} placeholder="e.g. Nakuru" />
+
+        <label style={lbl}>Motto (optional)</label>
+        <input style={inp} value={motto} onChange={e=>setMotto(e.target.value)} placeholder="e.g. Education for Life" />
+
+        <div style={{ background:"#f8f9fb", border:"1px solid #e5e7eb", borderRadius:8, padding:"12px 14px", marginBottom:14 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:"#888", textTransform:"uppercase", marginBottom:6 }}>Header Preview</div>
+          <div style={{ fontWeight:900, fontSize:15 }}>{(name||"YOUR SCHOOL NAME").toUpperCase()}</div>
+          {county && <div style={{ fontSize:12 }}>{county.toUpperCase()} · Primary School</div>}
+          {motto && <div style={{ fontSize:12, fontStyle:"italic" }}>Motto: {motto}</div>}
+        </div>
+
+        {saved && <div style={{ color: "#16a34a", fontSize: 12, marginBottom: 8 }}>✅ Saved!</div>}
+        <button style={btn("#1a56db")} onClick={save} disabled={saving}>{saving ? "Saving…" : "💾 Save"}</button>
+        <button style={{ ...btn("#555"), marginTop: 6 }} onClick={onDone}>← Back</button>
+      </div>
+    </div>
+  );
 }
 
 // ─── SETUP SCREEN ─────────────────────────────────────────────────────────────
@@ -650,7 +766,7 @@ function LoginScreen({ onLogin }) {
     <div style={{ background: "#111", minHeight: "100vh", padding: "16px 12px" }}>
       <div style={bx}>
         <div style={{ textAlign: "center", marginBottom: 18 }}>
-          <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 1 }}>SISION PRIMARY SCHOOL</div>
+          <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 1 }}>{CURRENT_SCHOOL.name.toUpperCase()}</div>
           <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>Sign in to continue</div>
         </div>
         <label style={{ fontSize: 12, fontWeight: 700, color: "#444" }}>Username</label>
@@ -758,130 +874,13 @@ function TeacherAdminScreen({ onDone }) {
   );
 }
 
-function GradingSystemScreen({ onDone }) {
-  const [bands, setBands] = useState(DEFAULT_GRADES.map(g => ({...g})));
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    (async () => {
-      if (GH) {
-        await loadDB(true);
-        const existing = await loadShared("gradingSystemOverride", null);
-        if (existing && Array.isArray(existing) && existing.length) {
-          setBands(existing.map(g => ({...g})));
-        }
-      }
-      setLoading(false);
-    })();
-  }, []);
-
-  function updateBand(i, field, value) {
-    setBands(prev => prev.map((b, idx) => idx===i ? {...b, [field]: value} : b));
-  }
-
-  function validate() {
-    // Bands must be sorted highest-to-lowest with no gaps or overlaps, and
-    // fully cover 0-100 so every possible score gets a band.
-    const sorted = [...bands].sort((a,b) => Number(b.min) - Number(a.min));
-    for (let i = 0; i < sorted.length; i++) {
-      const min = Number(sorted[i].min), max = Number(sorted[i].max);
-      if (isNaN(min) || isNaN(max) || min > max) return `${sorted[i].sub}: min must be less than or equal to max.`;
-      if (i === 0 && max !== 100) return `${sorted[i].sub} should end at 100 (it's the top band).`;
-      if (i === sorted.length-1 && min !== 0) return `${sorted[i].sub} should start at 0 (it's the bottom band).`;
-      if (i > 0) {
-        const prevMin = Number(sorted[i-1].min);
-        if (max + 1 !== prevMin) return `There's a gap or overlap between ${sorted[i].sub} and ${sorted[i-1].sub} — ${sorted[i].sub}'s max should be exactly one less than ${sorted[i-1].sub}'s min.`;
-      }
-    }
-    return "";
-  }
-
-  async function save() {
-    const err = validate();
-    if (err) { setError(err); return; }
-    setError("");
-    if (!GH) { alert("Not connected to GitHub. Connect first so this applies for everyone."); return; }
-    setSaving(true);
-    try {
-      const cleaned = bands.map(b => ({...b, min: Number(b.min), max: Number(b.max), points: Number(b.points)}));
-      const ok = await saveShared("gradingSystemOverride", cleaned);
-      if (ok) {
-        GRADES = cleaned;
-        setSaved(true);
-        setTimeout(()=>setSaved(false), 2000);
-      } else {
-        alert("Save failed. Check your internet connection and try again.");
-      }
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function resetToDefault() {
-    if (!window.confirm("Reset to the original EE 75-100 / ME 50-74 / AE 30-49 / BE 0-29 bands? This affects everyone.")) return;
-    setBands(DEFAULT_GRADES.map(g => ({...g})));
-  }
-
-  const bx = { maxWidth: 520, margin: "32px auto", background: "#fff", borderRadius: 14,
-    padding: "28px 22px", fontFamily: "-apple-system,sans-serif", boxShadow: "0 2px 20px rgba(0,0,0,0.10)" };
-  const inp = { width: "100%", padding: "9px 10px", border: "1px solid #ddd", borderRadius: 8,
-    fontSize: 14, marginTop: 4, boxSizing: "border-box" };
-  const btn = (bg) => ({ marginTop: 12, width: "100%", padding: 12, background: bg, color: "#fff",
-    border: "none", borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: "pointer" });
-
-  return (
-    <div style={{ background: "#eef2ff", minHeight: "100vh", padding: "16px 12px" }}>
-      <div style={bx}>
-        <div style={{ fontSize: 21, fontWeight: 800, marginBottom: 2 }}>📊 Edit Grading System</div>
-        <p style={{ fontSize: 13, color: "#555", margin: "4px 0 18px" }}>
-          Change the percentage ranges and points for each CBC band. Bands must cover 0-100 with no gaps between them.
-        </p>
-        {!GH && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 12 }}>Not connected to GitHub — connect first so changes apply for everyone.</div>}
-        {loading ? (
-          <div style={{ padding: 20, textAlign: "center", color: "#888" }}>Loading…</div>
-        ) : (
-          <div>
-            <div style={{ display: "flex", gap: 8, fontSize: 11, fontWeight: 700, color: "#666", marginBottom: 2 }}>
-              <div style={{ width: 50 }}>Band</div>
-              <div style={{ flex: 1 }}>Min %</div>
-              <div style={{ flex: 1 }}>Max %</div>
-              <div style={{ flex: 1 }}>Points</div>
-            </div>
-            {bands.map((b, i) => (
-              <div key={b.sub} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                <div style={{ width: 50, fontWeight: 800, fontSize: 14 }}>{b.sub}</div>
-                <input style={inp} type="number" min="0" max="100" value={b.min} onChange={e=>updateBand(i,"min",e.target.value)} />
-                <input style={inp} type="number" min="0" max="100" value={b.max} onChange={e=>updateBand(i,"max",e.target.value)} />
-                <input style={inp} type="number" min="1" value={b.points} onChange={e=>updateBand(i,"points",e.target.value)} />
-              </div>
-            ))}
-          </div>
-        )}
-        {error && <div style={{ color: "#c0392b", fontSize: 12.5, marginTop: 4, marginBottom: 4 }}>⚠ {error}</div>}
-        {saved && <div style={{ color: "#16a34a", fontSize: 12, marginBottom: 8 }}>✅ Saved! Applies everywhere immediately — report cards, PDFs, and distribution analysis.</div>}
-        <button style={btn("#1a56db")} onClick={save} disabled={saving || loading}>{saving ? "Saving…" : "💾 Save Grading System"}</button>
-        <button style={{...btn("#888"), marginTop: 8}} onClick={resetToDefault} disabled={loading}>↺ Reset to Default</button>
-        <button style={{ ...btn("#555"), marginTop: 6 }} onClick={onDone}>← Back</button>
-      </div>
-    </div>
-  );
-}
-
-
 // ─── GRADING ────────────────────────────────────────────────────────────────
-const DEFAULT_GRADES = [
+const GRADES = [
   { sub: "EE", level: "EE", min: 75, max: 100, points: 4, band: "Exceeding Expectations", remark: "Exceptional mastery; exceeds expectations" },
   { sub: "ME", level: "ME", min: 50, max: 74,  points: 3, band: "Meeting Expectations",   remark: "Solid understanding" },
   { sub: "AE", level: "AE", min: 30, max: 49,  points: 2, band: "Approaching Expectations", remark: "Developing understanding" },
   { sub: "BE", level: "BE", min: 0,  max: 29,  points: 1, band: "Below Expectations",     remark: "Needs support" },
 ];
-// GRADES is mutable (not the DEFAULT_GRADES constant) so an admin can edit the
-// band thresholds/points from within the app itself — the override is loaded
-// from shared storage and swapped in here, same pattern used for SUBJECTS.
-let GRADES = DEFAULT_GRADES;
 
 // ── Subject sets ────────────────────────────────────────────────────────
 // Lower Primary (Grades 1–3) and Upper Primary (Grades 4–6) use different
@@ -996,20 +995,7 @@ function calcSubjectRanks(combinedList) {
 
 // ─── INITIAL LEARNER DATA ─────────────────────────────────────────────────────
 const INITIAL_LEARNERS = {
-  "1": { "": [
-    {name:"MARTIN KAROBIA"},{name:"ANGELA NYAGUTHII"},{name:"ALOICE MBURU"},{name:"JOY NJAMBI"},
-    {name:"MARVEL WAMBUI"},{name:"KARL KANJA"},{name:"JOYLINE WANGARI"},{name:"CECILIA MUGURE"},
-    {name:"FAVOUR WAMBUI"},{name:"AMELIA NJERI"},{name:"SELINA WANJIRU"},{name:"PRINCESS WACHEKE"},
-    {name:"DAVID NGINYO"},{name:"IRENE WANJIRU"},{name:"TERESIA MUGURE"},{name:"BRAVIN GACHIE"},
-    {name:"GEORGE KARANI"},{name:"EMMANUEL MBUGUA"},{name:"ANNE GATHONI"},{name:"HARRISON NJENGA"},
-    {name:"KEAGAN KIRUKU"},{name:"LEVY MWANGI"},{name:"JOSEPH NKURUMAH"},{name:"DORCAS WAMBUI"},
-    {name:"DAVID MACHARIA"},{name:"BENSON KARIUKI"},{name:"JOHN NJONGORO"},{name:"YVONNE MUTHONI"},
-    {name:"ELIZABETH WANGARI"},{name:"MILKAH WANJIRU"},{name:"JOHN KARANJA"},{name:"EMMANUEL MACHARIA"},
-    {name:"JOHN CHEGE"},{name:"OLIVIA ANGEL KIBUGI"},{name:"RYAN CHEGE"},{name:"SIMON KINYANJUI"},
-    {name:"FRANCIS KIMANI"},{name:"LEWIS NJUGUNA"},{name:"BRIAN MAINA"},{name:"ANNE WAMBUI"},
-    {name:"STEPHEN KAMAU"},{name:"ROBERT NJOROGE"},{name:"VINCENT KANYORA"},{name:"ANN WACERA"},
-    {name:"BETH WANJIRU"},{name:"WILSON KASEKWA"},{name:"STEPHEN NJOROGE"},{name:"FABIAN GATHAKU"},
-  ]},
+  "1": { "": [] },
   "2": { "": [
     {name:"ZIPPORAH WANJIRU"},{name:"JANE WANGUI"},{name:"IAN MWANGI"},{name:"ALICIOUS ANGEL"},
     {name:"DANIEL KAMAU"},{name:"LEAH NYAMBURA"},{name:"LEAH WANJIRU"},{name:"BEAUTRICE WANJIRU"},
@@ -1026,43 +1012,8 @@ const INITIAL_LEARNERS = {
     {name:"PETER KIMANI"},{name:"DAVID CHEGE"},{name:"DAVID THUKU"},{name:"MIRIAM WANJIKU"},
     {name:"PURITY MUMBI"},
   ]},
-  "3": { "": [
-    {name:"GEORGE NGUGI"},{name:"SHANTEL NJERI"},{name:"BLESSING WAMBUI"},{name:"ROSEBANCY WANJIRU"},
-    {name:"JOSEPH IGUANYA"},{name:"JOYCE WACUKA"},{name:"ROBERT MUNGAI"},{name:"ELIZABETH WANGUI"},
-    {name:"BETH WANJIKU"},{name:"JOAN NJERI"},{name:"JOSEPH MWANGI"},{name:"GEORGE NDUATI"},
-    {name:"MALCOM KARANJA"},{name:"ETANA WANJIRU"},{name:"JEMIMAH WANJIRU"},{name:"JOHN MUNGAI"},
-    {name:"RUTH WAMBUI"},{name:"JOHN KIMANI"},{name:"ELIZABETH RUGURU"},{name:"NICKSON NGUGI"},
-    {name:"JOSPHINE WANGUI"},{name:"FRANCIS NJENGA"},{name:"JIAN KIMANI"},{name:"JOSEPH GACUNGA"},
-    {name:"LUSET WAITHERA"},{name:"ELIZABETH WANJIKU"},{name:"LOISE NYATHIRA"},{name:"GLADYS WANGARI"},
-    {name:"MIRRIAM WANJIKU"},{name:"MARY WAITHERA"},{name:"CORNELIUS KIAMA"},{name:"BENSON MAINA"},
-    {name:"WINROSE WANGARI"},{name:"EVALYNE WAIRIMU"},{name:"CARSON MAKUMI"},{name:"TABITHA MURINGE"},
-    {name:"SAMUEL NJOROGE"},{name:"JAMES KIMANI"},{name:"CECILIA MUGURE"},{name:"SHANTEL NYAMBURA"},
-    {name:"JOSEPH NJUGUNA"},{name:"LYAN WAMBUGU"},{name:"MICHAEL IHUGO"},{name:"JOSHUA KIARIE"},
-    {name:"MOSES MWANGI"},{name:"TERESIAH WANJIRU"},{name:"FRANCIS MWAURA"},{name:"SAMUEL WAINAINA"},
-    {name:"LAWRENCE NJENGA"},{name:"MINNE MUTHONI"},{name:"LEWIS MWANGI"},{name:"DANIEL GICHOHI"},
-    {name:"JAMES KUNGU"},{name:"HANNAH WAMBUI"},{name:"JOHN GACHUIRI"},{name:"STEPHEN THIONGO"},
-    {name:"JOSEPH NJOROGE"},{name:"PATRICK CHEGE"},
-  ]},
-  "4": { "": [
-    {name:"EUNICE NDUNGU"},{name:"BLESSED MBUGUA"},{name:"DANSON GACHIE"},{name:"CONSTANT YANIS"},
-    {name:"MARVEL MBUGUA"},{name:"PAUL CHEGE"},{name:"MONICA WAMBUI"},{name:"CLAIRE WANGUI"},
-    {name:"GRACE WAIRIMU"},{name:"PETER KIMANI"},{name:"ANTONY KABIRU"},{name:"TANYA WACUKA"},
-    {name:"EMMANUEL MWAURA"},{name:"CHRISTABEL WANGARI"},{name:"RAHAB GATHONI"},{name:"DAVID MUNGAI"},
-    {name:"PROMISE MAINA"},{name:"MICHAEL NJENGA"},{name:"JAMES GITHINJI"},{name:"VINCENT NJENGA"},
-    {name:"FAITH WANGUI"},{name:"BENARD MUIGAI"},{name:"MARGARET WANJIRU"},{name:"JOSEPH GACHUNGA"},
-    {name:"MARY WAMBUI"},{name:"JAMES KARANJA"},{name:"VIOLET BOKE"},{name:"MARGARET NYOKABI"},
-    {name:"CELESTINE KERUBO"},{name:"JOY WAMBUI"},{name:"MARIA WAMBUI"},{name:"CYTHIA WAIRIMU"},
-    {name:"CHRISTINE WAIRIMU"},{name:"JOY NYAMBURA"},{name:"LEWIS WAWERU"},{name:"NATALIE NYOKABI"},
-    {name:"IAN KAIRU"},{name:"MIRIAM WAMBUI"},{name:"JOHN KAMAU"},{name:"NAOMI WAMBUI"},
-    {name:"JOYANNE NJERI"},{name:"PATRICIA NJERI"},{name:"ALEX WAINAINA"},{name:"BRIAN NJOROGE"},
-    {name:"JOSEPH NDUNGU"},{name:"FLORENCE NYOKABI"},{name:"JAMES NJOROGE"},{name:"GEORGE GIKABA"},
-    {name:"PRECIOUS NYAWIRA"},{name:"SARAH NJERI"},{name:"WILFRED MBUGUA"},{name:"PENINAH MUMBI"},
-    {name:"RUTH NYAMBURA"},{name:"CHARITY WANJIKU"},{name:"LEE MWANGI"},{name:"GRACE WANJIKU"},
-    {name:"FRANCIS NJOROGE"},{name:"WILLIAM KUNGU"},{name:"JECINTA WAMBUI"},{name:"SHEITON KIARIE"},
-    {name:"GRACE NJERI"},{name:"JOHN NDIRANGU"},{name:"GODFREY NJUGE"},{name:"AGNES WANGUI"},
-    {name:"AGNES WAMBUI"},{name:"CHARLES KAMAU"},{name:"MARGARET WAMBUI"},{name:"JOHN MAINA"},
-    {name:"DANIEL KIBE"},{name:"LUCY WANJIRU"},{name:"HANNAH NJERI"},{name:"JOSEPH MBATIA"},
-  ]},
+  "3": { "": [] },
+  "4": { "": [] },
   "5": { "": [] },
   "6": {
     "East": [
@@ -1114,7 +1065,7 @@ const CLASS_TEACHERS = {
 //         Manage Team), "classTeacher" (can only open the class(es) listed), or
 //         "subjectTeacher" (goes straight to marks entry for their subject(s)/class(es))
 // - classes: which grade/stream combinations this person can access.
-//     stream is "" for Grade 7 and Grade 9 (no streams), or "East"/"West" for Grade 6.
+//     stream is "" for Grades 1–5 (no streams), or "East"/"West" for Grade 6.
 // - subjects: (subjectTeacher only) which subjects they enter marks for. Must be exactly
 //     from: ENG, KISW, MATH, ENV, CRE, "C/A" (Lower Primary 1-3) or MATH, ENG, KISW,
 //     SCI_AGRIC, CREATIVE, SOCIAL (Upper Primary 4-6)
@@ -1487,7 +1438,7 @@ const SEED_SCORES = {};
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function blankScores() { const s={}; SUBJECTS.forEach(sub=>s[sub]=""); return s; }
 
-// Rank a list and attach .rank, .streamRank (Grade 8), .overallRank (Grade 8)
+// Rank a list and attach .rank, .streamRank (Grade 6), .overallRank (Grade 6)
 function rankLearners(data, streamTag) {
   const withStats = data.map(l => {
     const scores = {};
@@ -1499,7 +1450,7 @@ function rankLearners(data, streamTag) {
   return withStats;
 }
 
-// Combine East+West for Grade 8 overall rank
+// Combine East+West for Grade 6 overall rank
 function buildGrade8Combined(eastData, westData) {
   const east = rankLearners(eastData, "East");
   const west = rankLearners(westData, "West");
@@ -1578,7 +1529,7 @@ function PrintableClassList({ learners, grade, stream, term, year, classTeacher,
   return (
     <div className="print-classlist" style={CL.page}>
       <div style={CL.header}>
-        <div style={CL.schoolName}>SISION PRIMARY SCHOOL — NAIVASHA</div>
+        <div style={CL.schoolName}>{CURRENT_SCHOOL.name.toUpperCase()}{CURRENT_SCHOOL.county ? " — "+CURRENT_SCHOOL.county.toUpperCase() : ""}</div>
         <div style={CL.sub}>{label} &nbsp;|&nbsp; {term} {year}{classTeacher?` | Class Teacher: ${classTeacher}`:""}</div>
         <div style={CL.sub}>{hasScores ? "CLASS RESULTS REGISTER" : "MARK ENTRY REGISTER"}</div>
       </div>
@@ -1642,7 +1593,7 @@ function PrintableClassList({ learners, grade, stream, term, year, classTeacher,
           )}
         </tbody>
       </table>
-      <div style={CL.footer}>Sision Primary School · {term} {year} · {label} · {new Date().toLocaleDateString()}</div>
+      <div style={CL.footer}>Sision Junior School · {term} {year} · {label} · {new Date().toLocaleDateString()}</div>
     </div>
   );
 }
@@ -1655,7 +1606,7 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
   return (
     <div className="report-card" data-name={learner.name} style={RC.page}>
       <div style={RC.header}>
-        <div style={RC.schoolName}>SISION PRIMARY SCHOOL</div>
+        <div style={RC.schoolName}>{CURRENT_SCHOOL.name.toUpperCase()}</div>
         <div style={RC.schoolSub}>Naivasha · {["1","2","3"].includes(String(grade)) ? "Lower Primary" : "Upper Primary"}</div>
         <div style={RC.reportTitle}>LEARNER'S {term.toUpperCase()} PROGRESS REPORT — {year}</div>
       </div>
@@ -1781,7 +1732,7 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
           {/* Exam progress table removed */}
         </div>
       </div>
-      <div style={RC.footer}>{term} {year} · Sision Primary School, Naivasha · Excellence Through Diligence</div>
+      <div style={RC.footer}>{term} {year} · Sision Junior School, Naivasha · Excellence Through Diligence</div>
     </div>
   );
 }
@@ -1990,13 +1941,27 @@ function App() {
 
   const [showSetup, setShowSetup] = useState(!GH);
   const [showTeacherAdmin, setShowTeacherAdmin] = useState(false);
-  const [showGradingSystem, setShowGradingSystem] = useState(false);
   const [generatingAllPDF, setGeneratingAllPDF] = useState(false);
+
+  const DEFAULT_SCHOOL = { name: "Sision Primary School", county: "Naivasha", motto: "" };
+  const [schoolConfig, setSchoolConfig] = useState(DEFAULT_SCHOOL);
+  const [showSchoolSettings, setShowSchoolSettings] = useState(false);
+  useEffect(() => {
+    if (!GH) return;
+    (async () => {
+      const saved = await loadShared("sision_school_config", null);
+      if (saved && saved.name) {
+        setSchoolConfig(saved);
+        CURRENT_SCHOOL = saved;
+        document.title = saved.name + " — Results";
+      }
+    })();
+  }, []);
 
   const [page, setPage]           = useState("home");
   const [grade, setGrade]         = useState(GRADE_LOCK || "1");
   const [stream, setStream]       = useState("East");
-  // "view" mode: "stream" = single class, "combined" = all Grade 8
+  // "view" mode: "stream" = single class, "combined" = all Grade 6
   const [viewMode, setViewMode]   = useState("stream");
   const [term, setTerm]           = useState(()=>localStorage.getItem("sision_last_term")||"Mid Term 2");
   const [year, setYear]           = useState(()=>localStorage.getItem("sision_last_year")||"2026");
@@ -2046,7 +2011,7 @@ function App() {
   const [closingDay, setClosingDay]     = useState("");
   const [openingDay, setOpeningDay]     = useState("");
 
-  // Per-stream learner lists (Grade 8: both loaded at once)
+  // Per-stream learner lists (Grade 6: both loaded at once)
   const [learnersEast, setLearnersEast] = useState([]);
   const [learnersWest, setLearnersWest] = useState([]);
   // For grade 7 / 9 (single stream) and also split-mode non-8 grades
@@ -2077,25 +2042,6 @@ function App() {
     const activeGrade = isSubjectTeacherView ? subjectClass.grade : grade;
     SUBJECTS = getSubjectsForGrade(activeGrade);
   }
-
-  // Load any admin-saved grading system override once this device is
-  // connected. GRADES is a mutable global (like SUBJECTS), so once loaded it
-  // applies everywhere automatically — report cards, PDFs, distribution, etc.
-  const [gradesVersion, setGradesVersion] = useState(0);
-  useEffect(() => {
-    if (!GH) return;
-    (async () => {
-      try {
-        await loadDB(true);
-        const override = await loadShared("gradingSystemOverride", null);
-        if (override && Array.isArray(override) && override.length) {
-          GRADES = override;
-          setGradesVersion(v => v + 1);
-        }
-      } catch {}
-    })();
-  }, [GH ? 1 : 0]);
-
   const [subjectTerm, setSubjectTerm]       = useState(()=>localStorage.getItem("sision_last_term")||"Mid Term 2");
   const [subjectYear, setSubjectYear]       = useState(()=>localStorage.getItem("sision_last_year")||"2026");
   const [subjectList, setSubjectList]       = useState([]); // [{name, score}]
@@ -2171,7 +2117,7 @@ function App() {
         setSubjectSaved(true);
         setTimeout(()=>setSubjectSaved(false), 2500);
       } else {
-        alert("Upload failed. Check your internet connection and try again. Your entries are still on screen — do not close the app.");
+        alert(`Upload failed: ${LAST_SYNC_ERROR || "Unknown error."} Your entries are still on screen — do not close the app.`);
       }
     } finally {
       setSubjectSaving(false);
@@ -2470,7 +2416,7 @@ function App() {
       if (ok) {
         setSaved(true); setDirty(false); setTimeout(()=>setSaved(false), 2500);
       } else {
-        alert("Save failed. Check your internet connection and GitHub token, then try again. Your changes are still on screen but NOT saved yet - do not close the app.");
+        alert(`Save failed: ${LAST_SYNC_ERROR || "Unknown error."} Your changes are still on screen but NOT saved yet - do not close the app.`);
       }
     } finally {
       setSaving(false);
@@ -2830,20 +2776,29 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
 
   // Draws one learner's full report card onto the CURRENT page of a jsPDF doc,
   // mirroring the on-screen ReportCard layout (subjects, summary, pathways, key).
-    // Renders one already-on-screen report card DOM node into the current PDF
-// page, pixel-matching exactly what "Print" produces (same node, same CSS).
-function renderNodeToPdfPage(doc, node) {
-    return new Promise((resolve, reject) => {
-      try {
-        doc.html(node, {
-          callback: () => resolve(),
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-          width: 595,                       // A4 width in pt
-          windowWidth: node.scrollWidth || 900,
-          x: 0, y: 0,
-        });
-      } catch (err) { reject(err); }
-    });
+  //
+  // Renders one already-on-screen report card DOM node into the current PDF
+  // page as a single scaled image. We deliberately do NOT use jsPDF's built-in
+  // doc.html() auto-layout here — combining it with a manual html2canvas.scale
+  // is a known source of the "zoomed way in / content cut off" bug, because
+  // jsPDF's own width/windowWidth ratio and html2canvas's pixel-density scale
+  // can fight each other. Rendering to a canvas ourselves and then fitting
+  // that canvas to the page (preserving aspect ratio, with a small margin)
+  // guarantees the whole report is always visible on one page.
+  async function renderNodeToPdfPage(doc, node) {
+    const canvas = await html2canvas(node, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+    const imgData = canvas.toDataURL("image/png");
+    const margin = 20; // pt
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const maxWidth = pageWidth - margin * 2;
+    const maxHeight = pageHeight - margin * 2;
+    const scale = Math.min(maxWidth / canvas.width, maxHeight / canvas.height);
+    const renderWidth = canvas.width * scale;
+    const renderHeight = canvas.height * scale;
+    const x = (pageWidth - renderWidth) / 2;
+    const y = margin;
+    doc.addImage(imgData, "PNG", x, y, renderWidth, renderHeight);
   }
 
   // Single-learner download: exact match to Print (one page only — fast and safe).
@@ -2871,7 +2826,7 @@ function renderNodeToPdfPage(doc, node) {
     let y = 14;
     doc.setFontSize(15);
     doc.setFont(undefined, "bold");
-    doc.text("SISION PRIMARY SCHOOL", 105, y, { align: "center" });
+    doc.text(CURRENT_SCHOOL.name.toUpperCase(), 105, y, { align: "center" });
     doc.setFontSize(9);
     doc.setFont(undefined, "normal");
     y += 5;
@@ -2962,7 +2917,7 @@ function renderNodeToPdfPage(doc, node) {
 
     doc.setFontSize(7.5);
     doc.setFont(undefined, "normal");
-    doc.text(`${term} ${year} · Sision Primary School, Naivasha`, 105, 290, { align: "center" });
+    doc.text(`${term} ${year} · Sision Junior School, Naivasha`, 105, 290, { align: "center" });
   }
 
   // All-report-forms download: fast vector drawing, one page per learner.
@@ -3090,7 +3045,12 @@ function renderNodeToPdfPage(doc, node) {
   }} />;
 
   if (showTeacherAdmin) return <TeacherAdminScreen onDone={() => { setShowTeacherAdmin(false); }} />;
-  if (showGradingSystem) return <GradingSystemScreen onDone={() => { setShowGradingSystem(false); }} />;
+
+  if (showSchoolSettings) return <SchoolSettingsScreen
+    schoolName={schoolConfig.name} schoolCounty={schoolConfig.county} schoolMotto={schoolConfig.motto}
+    onSave={(data) => { setSchoolConfig(data); CURRENT_SCHOOL = data; }}
+    onDone={() => setShowSchoolSettings(false)}
+  />;
 
   if (page==="home") {
     // Determine if current grade is split (East/West) for home UI
@@ -3109,17 +3069,14 @@ function renderNodeToPdfPage(doc, node) {
         onSkip={()=>setShowWizard(false)}
       />}
       <div style={S.header}>
-        <div style={S.schoolName}>SISION PRIMARY SCHOOL</div>
-        <div style={S.schoolSub}>Naivasha · Primary School</div>
+        <div style={S.schoolName}>{(schoolConfig.name||DEFAULT_SCHOOL.name).toUpperCase()}</div>
+        <div style={S.schoolSub}>{schoolConfig.county ? schoolConfig.county+" · " : ""}Primary School</div>
+        {schoolConfig.motto ? <div style={{fontSize:12,fontStyle:"italic",color:"#ddd"}}>{schoolConfig.motto}</div> : null}
         <div style={S.systemTitle}>CBC Learner Ranking & Report Card System</div>
         <div style={{marginTop:6,fontSize:12,color:"#ccc"}}>
           Logged in as <b>{userSession.name}</b> ({userSession.role === "admin" ? "Administrator" : "Class Teacher"})
           {" · "}<button onClick={logout} style={{background:"none",border:"none",color:"#9ecbff",textDecoration:"underline",cursor:"pointer",fontSize:12,padding:0}}>Log out</button>
         </div>
-        <div style={{marginTop:2,fontSize:10.5,color:GH?"#9ecbff":"#ff9e9e"}}>
-          {GH ? `Connected to: ${GH.owner}/${GH.repo}` : "⚠ Not connected to GitHub"}
-        </div>
-        <div style={{marginTop:2,fontSize:9,color:"#888"}}>Build: 2026-08-01 18:53 UTC</div>
         <div style={{marginTop:8,display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
           {userSession.role === "admin" && <button onClick={()=>setShowSetup(true)} style={{fontSize:11,padding:"4px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:20,color:"#fff",cursor:"pointer"}}>
             ⚙ Database Settings / Teacher Link
@@ -3127,8 +3084,8 @@ function renderNodeToPdfPage(doc, node) {
           {userSession.role === "admin" && <button onClick={()=>setShowTeacherAdmin(true)} style={{fontSize:11,padding:"4px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:20,color:"#fff",cursor:"pointer"}}>
             ✏️ Manage Team
           </button>}
-          {userSession.role === "admin" && <button onClick={()=>setShowGradingSystem(true)} style={{fontSize:11,padding:"4px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:20,color:"#fff",cursor:"pointer"}}>
-            📊 Edit Grading System
+          {userSession.role === "admin" && <button onClick={()=>setShowSchoolSettings(true)} style={{fontSize:11,padding:"4px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:20,color:"#fff",cursor:"pointer"}}>
+            🏫 School Settings
           </button>}
           {userSession.role === "admin" && <button onClick={()=>setShowWizard(true)} style={{fontSize:11,padding:"4px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:20,color:"#fff",cursor:"pointer"}}>
             🔄 Re-run Year Setup
@@ -3233,7 +3190,7 @@ function renderNodeToPdfPage(doc, node) {
     return (
       <div style={S.page}>
         <div style={S.header}>
-          <div style={S.schoolName}>SISION PRIMARY SCHOOL</div>
+          <div style={S.schoolName}>{schoolConfig.name.toUpperCase()}</div>
           <div style={S.systemTitle}>{subjectSession.name}</div>
         </div>
         <div style={S.homeCard}>
@@ -3260,7 +3217,7 @@ function renderNodeToPdfPage(doc, node) {
     return (
       <div style={S.page}>
         <div style={S.header}>
-          <div style={S.schoolName}>SISION PRIMARY SCHOOL</div>
+          <div style={S.schoolName}>{schoolConfig.name.toUpperCase()}</div>
           <div style={S.systemTitle}>{subjectSession.name} · {clsLabel}</div>
         </div>
         <div style={S.homeCard}>
@@ -3286,9 +3243,6 @@ function renderNodeToPdfPage(doc, node) {
     const clsLabel = `Grade ${subjectClass.grade}${subjectClass.stream?` ${subjectClass.stream}`:""}`;
     return (
       <div style={S.page}>
-        <div style={{padding:"4px 12px",fontSize:10.5,color:GH?"#555":"#c0392b",background:GH?"#f4f4f4":"#fdecea",textAlign:"center"}} className="no-print">
-          {GH ? `Connected to: ${GH.owner}/${GH.repo}` : "⚠ Not connected to GitHub — ask the admin to connect this device"} · Build: 2026-08-01 18:53 UTC
-        </div>
         <div style={S.topBar} className="no-print">
           <button style={S.backBtn} onClick={logout}>← Log out</button>
           <div style={S.topTitle}>{subjectSession.name} · {subjectChoice} · {clsLabel}</div>
