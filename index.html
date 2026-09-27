@@ -617,6 +617,212 @@ function SchoolSettingsScreen({ schoolName, schoolCounty, schoolMotto, onSave, o
   );
 }
 
+// ─── GRADING SCALE (admin-editable EE/ME/AE/BE cut-offs) ──────────────────────
+function GradingSystemScreen({ grades, onSave, onDone }) {
+  const [bands, setBands] = useState(() => grades.map(g=>({...g})));
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  const bx = { maxWidth: 560, margin: "32px auto", background: "#fff", borderRadius: 14,
+    padding: "28px 22px", fontFamily: "-apple-system,sans-serif", boxShadow: "0 2px 20px rgba(0,0,0,0.10)" };
+  const inp = { width: "100%", padding: "8px 9px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 };
+  const btn = (bg) => ({ marginTop: 4, padding: "10px 16px", background: bg, color: "#fff",
+    border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" });
+  const lbl = { fontSize: 10, fontWeight: 700, color: "#666", textTransform: "uppercase" };
+
+  function update(i, field, val) {
+    setBands(b => b.map((row,idx)=> idx===i ? {...row, [field]: val} : row));
+  }
+
+  function validate(list) {
+    const nums = list.map(b=>({min:Number(b.min), max:Number(b.max)}));
+    for (const n of nums) {
+      if (isNaN(n.min) || isNaN(n.max) || n.min > n.max) return "Each band's Min must be a number no greater than its Max.";
+    }
+    return "";
+  }
+
+  async function save() {
+    const cleaned = bands.map(b=>({...b, min:Number(b.min), max:Number(b.max), points:Number(b.points)}));
+    const err = validate(cleaned);
+    if (err) { setError(err); return; }
+    setError("");
+    if (!GH) { alert("Not connected to GitHub. Connect first so this is shared with everyone."); return; }
+    setSaving(true);
+    try {
+      const ok = await saveShared(gradingKey(), cleaned);
+      if (ok) {
+        onSave(cleaned);
+        setSaved(true);
+        setTimeout(()=>setSaved(false), 2000);
+      } else {
+        alert(`Save failed: ${LAST_SYNC_ERROR || "Unknown error."}`);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function resetToDefault() {
+    if (!window.confirm("Reset the grading scale to the factory default (EE 75-100, ME 50-74, AE 30-49, BE 0-29)?")) return;
+    setBands(DEFAULT_GRADES.map(g=>({...g})));
+  }
+
+  return (
+    <div style={{ background: "#eef2ff", minHeight: "100vh", padding: "16px 12px" }}>
+      <div style={bx}>
+        <div style={{ fontSize: 21, fontWeight: 800, marginBottom: 2 }}>🎯 Grading Scale</div>
+        <p style={{ fontSize: 13, color: "#555", margin: "4px 0 18px" }}>
+          Set the percentage cut-offs for each CBC performance band. These apply everywhere —
+          report cards, class lists, and results analysis.
+        </p>
+        {!GH && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 12 }}>Not connected to GitHub — connect first so changes can be shared with everyone.</div>}
+        {error && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 12 }}>{error}</div>}
+
+        <div style={{display:"grid",gridTemplateColumns:"70px 1fr 1fr 70px",gap:8,marginBottom:6,fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>
+          <div>Code</div><div>Min %</div><div>Max %</div><div>Points</div>
+        </div>
+        {bands.map((b,i)=>(
+          <div key={b.sub} style={{display:"grid",gridTemplateColumns:"70px 1fr 1fr 70px",gap:8,marginBottom:10,alignItems:"center"}}>
+            <div style={{fontWeight:800,fontSize:14}}>{b.sub}</div>
+            <input style={inp} type="number" min="0" max="100" value={b.min} onChange={e=>update(i,"min",e.target.value)} />
+            <input style={inp} type="number" min="0" max="100" value={b.max} onChange={e=>update(i,"max",e.target.value)} />
+            <input style={inp} type="number" min="1" value={b.points} onChange={e=>update(i,"points",e.target.value)} />
+          </div>
+        ))}
+
+        {saved && <div style={{ color: "#16a34a", fontSize: 12, marginBottom: 8 }}>✅ Saved!</div>}
+        <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
+          <button style={btn("#1a56db")} onClick={save} disabled={saving}>{saving ? "Saving…" : "💾 Save Grading Scale"}</button>
+          <button style={btn("#888")} onClick={resetToDefault}>↺ Reset to Default</button>
+          <button style={btn("#555")} onClick={onDone}>← Back</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MANAGE SUBJECTS & CLASSES (admin-editable subject lists) ─────────────────
+function ManageSubjectsScreen({ lower, upper, grade6Mode, onSaveLower, onSaveUpper, onDone }) {
+  const [lowerList, setLowerList] = useState(() => lower.map(s=>({...s})));
+  const [upperList, setUpperList] = useState(() => upper.map(s=>({...s})));
+  const [newLower, setNewLower] = useState({ code: "", label: "" });
+  const [newUpper, setNewUpper] = useState({ code: "", label: "" });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const bx = { maxWidth: 640, margin: "32px auto", background: "#fff", borderRadius: 14,
+    padding: "28px 22px", fontFamily: "-apple-system,sans-serif", boxShadow: "0 2px 20px rgba(0,0,0,0.10)" };
+  const inp = { flex: 1, padding: "8px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 };
+  const btn = (bg) => ({ padding: "10px 16px", background: bg, color: "#fff",
+    border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" });
+
+  function renderList(list, setList, label) {
+    function remove(code) {
+      if (list.length <= 1) { alert("Each band needs at least one subject."); return; }
+      if (!window.confirm(`Remove ${code} from ${label}?`)) return;
+      setList(l => l.filter(s=>s.code!==code));
+    }
+    function rename(code) {
+      const cur = list.find(s=>s.code===code);
+      const next = prompt(`Full name for "${code}":`, cur.label);
+      if (next===null) return;
+      setList(l => l.map(s=>s.code===code?{...s,label:next.trim()||s.label}:s));
+    }
+    return (
+      <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #eee" }}>
+        <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>{label}</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+          {list.map(s => (
+            <div key={s.code} style={{ display: "flex", alignItems: "center", gap: 6,
+              background: "#f3f4f6", borderRadius: 20, padding: "5px 6px 5px 12px", fontSize: 13 }}>
+              <span style={{ fontWeight: 700 }}>{s.code}</span>
+              <span style={{ color: "#666", fontSize: 11 }}>({s.label})</span>
+              <button onClick={()=>rename(s.code)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 12 }} title="Rename">✏️</button>
+              <button onClick={()=>remove(s.code)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 12, color: "#c0392b" }} title="Remove">✕</button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function addSubject(band) {
+    const draft = band==="lower" ? newLower : newUpper;
+    const list = band==="lower" ? lowerList : upperList;
+    const setList = band==="lower" ? setLowerList : setUpperList;
+    const setDraft = band==="lower" ? setNewLower : setNewUpper;
+    const code = draft.code.trim().toUpperCase();
+    const label = draft.label.trim() || code;
+    if (!code) return;
+    if (list.some(s=>s.code===code)) { alert(`${code} is already in this list.`); return; }
+    setList([...list, { code, label }]);
+    setDraft({ code: "", label: "" });
+  }
+
+  async function save() {
+    if (!GH) { alert("Not connected to GitHub. Connect first so this is shared with everyone."); return; }
+    setSaving(true);
+    try {
+      const okL = await saveShared(subjectsConfigKey("lower"), lowerList);
+      const okU = await saveShared(subjectsConfigKey("upper"), upperList);
+      if (okL && okU) {
+        onSaveLower(lowerList);
+        onSaveUpper(upperList);
+        setSaved(true);
+        setTimeout(()=>setSaved(false), 2000);
+      } else {
+        alert(`Save failed: ${LAST_SYNC_ERROR || "Unknown error."}`);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div style={{ background: "#eef2ff", minHeight: "100vh", padding: "16px 12px" }}>
+      <div style={bx}>
+        <div style={{ fontSize: 21, fontWeight: 800, marginBottom: 2 }}>📚 Manage Subjects & Classes</div>
+        <p style={{ fontSize: 13, color: "#555", margin: "4px 0 18px" }}>
+          Add, rename, or remove the subjects taught at each band. Every report card, class list,
+          and results analysis automatically uses whichever subjects are listed here.
+        </p>
+        {!GH && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 12 }}>Not connected to GitHub — connect first so changes can be shared with everyone.</div>}
+
+        {renderList(lowerList, setLowerList, "Lower Primary — Grades 1–3")}
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          <input style={inp} value={newLower.code} placeholder="Code, e.g. MUSIC" onChange={e=>setNewLower(d=>({...d,code:e.target.value}))} />
+          <input style={inp} value={newLower.label} placeholder="Full name, e.g. Music" onChange={e=>setNewLower(d=>({...d,label:e.target.value}))} />
+          <button style={btn("#16a34a")} onClick={()=>addSubject("lower")}>+ Add</button>
+        </div>
+
+        {renderList(upperList, setUpperList, "Upper Primary — Grades 4–6")}
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          <input style={inp} value={newUpper.code} placeholder="Code, e.g. MUSIC" onChange={e=>setNewUpper(d=>({...d,code:e.target.value}))} />
+          <input style={inp} value={newUpper.label} placeholder="Full name, e.g. Music" onChange={e=>setNewUpper(d=>({...d,label:e.target.value}))} />
+          <button style={btn("#16a34a")} onClick={()=>addSubject("upper")}>+ Add</button>
+        </div>
+
+        <div style={{ background:"#f8f9fb", border:"1px solid #e5e7eb", borderRadius:8, padding:"12px 14px", marginBottom:16, fontSize:12, color:"#555" }}>
+          <b>About classes:</b> Grade 6 is currently split into two streams
+          ({grade6Mode==="split" ? "East & West" : "a single class"}). Whether Grade 6 is split, and
+          the East/West names themselves, are changed from the <b>🔄 Re-run Year Setup</b> wizard on
+          the home screen — that keeps them in sync with each year's promotion and stream records.
+          Adding or removing a subject here does not delete any marks already saved under a subject
+          you remove — it just stops appearing on future entry screens and reports.
+        </div>
+
+        {saved && <div style={{ color: "#16a34a", fontSize: 12, marginBottom: 8 }}>✅ Saved!</div>}
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <button style={btn("#1a56db")} onClick={save} disabled={saving}>{saving ? "Saving…" : "💾 Save Subjects"}</button>
+          <button style={btn("#555")} onClick={onDone}>← Back</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── SETUP SCREEN ─────────────────────────────────────────────────────────────
 function SetupScreen({ onDone }) {
   const [token, setToken] = useState("");
@@ -875,30 +1081,55 @@ function TeacherAdminScreen({ onDone }) {
 }
 
 // ─── GRADING ────────────────────────────────────────────────────────────────
-const GRADES = [
+// GRADES is editable by the admin (Grading Scale screen) and stored on
+// GitHub under the key "gradingSystemOverride". DEFAULT_GRADES is the
+// factory scale used the first time the app runs, or if "Reset to Default"
+// is used. GRADES itself is kept as a mutable `let` (same pattern as
+// SUBJECTS below) so every existing calculation, table, and PDF export that
+// reads the plain `GRADES` name automatically sees the current scale.
+const DEFAULT_GRADES = [
   { sub: "EE", level: "EE", min: 75, max: 100, points: 4, band: "Exceeding Expectations", remark: "Exceptional mastery; exceeds expectations" },
   { sub: "ME", level: "ME", min: 50, max: 74,  points: 3, band: "Meeting Expectations",   remark: "Solid understanding" },
   { sub: "AE", level: "AE", min: 30, max: 49,  points: 2, band: "Approaching Expectations", remark: "Developing understanding" },
   { sub: "BE", level: "BE", min: 0,  max: 29,  points: 1, band: "Below Expectations",     remark: "Needs support" },
 ];
+let GRADES = DEFAULT_GRADES;
+function gradingKey() { return "gradingSystemOverride"; }
 
 // ── Subject sets ────────────────────────────────────────────────────────
 // Lower Primary (Grades 1–3) and Upper Primary (Grades 4–6) use different
-// subjects. `SUBJECTS` is kept as a single mutable list (not two separate
-// constants used everywhere) so every existing calculation, table, and PDF
-// export — which all reference the plain `SUBJECTS` name — automatically
-// uses the right set. It's kept in sync with whichever grade is currently
-// active near the top of App()'s render, before anything below reads it.
-const SUBJECTS_LOWER = ["ENG","KISW","MATH","ENV","CRE","C/A"];   // Grades 1–3
-const SUBJECTS_UPPER = ["MATH","ENG","KISW","SCI_AGRIC","CREATIVE","SOCIAL"]; // Grades 4–6
+// subjects. Both the code list AND the full-name labels are admin-editable
+// (Manage Subjects & Classes screen) and stored on GitHub under
+// "sision_subjects_lower" / "sision_subjects_upper" as arrays of
+// {code, label}. DEFAULT_* below are the factory sets used until an admin
+// customizes them. `SUBJECTS` and `SUBJECT_LABELS` are kept as mutable
+// module-level values (same pattern as GRADES above) so every existing
+// calculation, table, and PDF export automatically uses whichever set is
+// currently configured. They're kept in sync with whichever grade is
+// currently active near the top of App()'s render, before anything below
+// reads them.
+const DEFAULT_SUBJECTS_LOWER = [
+  { code:"ENG", label:"ENGLISH" }, { code:"KISW", label:"KISWAHILI" }, { code:"MATH", label:"MATHS" },
+  { code:"ENV", label:"ENVIRONMENT" }, { code:"CRE", label:"CRE" }, { code:"C/A", label:"C/A" },
+];
+const DEFAULT_SUBJECTS_UPPER = [
+  { code:"MATH", label:"MATHS" }, { code:"ENG", label:"ENGLISH" }, { code:"KISW", label:"KISWAHILI" },
+  { code:"SCI_AGRIC", label:"SCI/AGRIC" }, { code:"CREATIVE", label:"CREATIVE" }, { code:"SOCIAL", label:"SOCIAL" },
+];
+let SUBJECTS_LOWER_CFG = DEFAULT_SUBJECTS_LOWER;
+let SUBJECTS_UPPER_CFG = DEFAULT_SUBJECTS_UPPER;
+function subjectsConfigKey(band) { return band==="lower" ? "sision_subjects_lower" : "sision_subjects_upper"; }
 function getSubjectsForGrade(g) {
-  return ["1","2","3"].includes(String(g)) ? SUBJECTS_LOWER : SUBJECTS_UPPER;
+  return (["1","2","3"].includes(String(g)) ? SUBJECTS_LOWER_CFG : SUBJECTS_UPPER_CFG).map(s=>s.code);
 }
-let SUBJECTS = SUBJECTS_LOWER;
-const SUBJECT_LABELS = {
-  ENG:"ENGLISH", KISW:"KISWAHILI", MATH:"MATHS", ENV:"ENVIRONMENT", CRE:"CRE", "C/A":"C/A",
-  SCI_AGRIC:"SCI/AGRIC", CREATIVE:"CREATIVE", SOCIAL:"SOCIAL"
-};
+function getLabelsForGrade(g) {
+  const cfg = ["1","2","3"].includes(String(g)) ? SUBJECTS_LOWER_CFG : SUBJECTS_UPPER_CFG;
+  const labels = {};
+  cfg.forEach(s=>{ labels[s.code] = s.label; });
+  return labels;
+}
+let SUBJECTS = getSubjectsForGrade("1");
+let SUBJECT_LABELS = getLabelsForGrade("1");
 
 // ── Pathways ─────────────────────────────────────────────────────────────
 // CBC career pathways only apply from Grade 7 (Junior Secondary) onward, so
@@ -958,14 +1189,26 @@ function calcStats(scores) {
   return { total, points, avg, level };
 }
 
+function meanOf(vals) { return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : "–"; }
+
 function calcSubjectMeans(rankedList) {
   const means = {};
+  const boys = rankedList.filter(l=>l.gender==="M");
+  const girls = rankedList.filter(l=>l.gender==="F");
   SUBJECTS.forEach(sub => {
-    const vals = rankedList.map(l => Number(l.scores[sub])).filter(v => !isNaN(v) && v > 0);
-    means[sub] = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : "–";
+    const valsOf = list => list.map(l => Number(l.scores[sub])).filter(v => !isNaN(v) && v > 0);
+    means[sub] = meanOf(valsOf(rankedList));
+    means[sub+"_M"] = meanOf(valsOf(boys));
+    means[sub+"_F"] = meanOf(valsOf(girls));
   });
   const allAvgs = rankedList.filter(l=>l.total>0).map(l=>parseFloat(l.avg));
-  means["_classMean"] = allAvgs.length ? (allAvgs.reduce((a,b)=>a+b,0)/allAvgs.length).toFixed(2) : "–";
+  const boyAvgs = boys.filter(l=>l.total>0).map(l=>parseFloat(l.avg));
+  const girlAvgs = girls.filter(l=>l.total>0).map(l=>parseFloat(l.avg));
+  means["_classMean"] = meanOf(allAvgs);
+  means["_boysMean"] = meanOf(boyAvgs);
+  means["_girlsMean"] = meanOf(girlAvgs);
+  means["_boysCount"] = boys.filter(l=>l.total>0).length;
+  means["_girlsCount"] = girls.filter(l=>l.total>0).length;
   // Mean total marks expressed as a fraction of the maximum possible total
   // (sum of every learner's overall total, divided by number of learners,
   // shown like "370/900").
@@ -974,6 +1217,20 @@ function calcSubjectMeans(rankedList) {
   means["_meanTotal"] = allTotals.length ? Math.round(allTotals.reduce((a,b)=>a+b,0)/allTotals.length) : 0;
   means["_maxTotal"] = maxTotal;
   return means;
+}
+
+// Top scorer ("subject champion") per subject across a ranked list.
+function calcSubjectChampions(rankedList) {
+  const champs = {};
+  SUBJECTS.forEach(sub => {
+    let best = null;
+    rankedList.forEach(l => {
+      const v = Number(l.scores[sub]);
+      if (!isNaN(v) && v > 0 && (!best || v > best.score)) best = { name: l.name, score: v };
+    });
+    champs[sub] = best;
+  });
+  return champs;
 }
 
 // Compute per-subject rank for every learner across a combined list (East+West merged)
@@ -1538,6 +1795,7 @@ function PrintableClassList({ learners, grade, stream, term, year, classTeacher,
           <tr>
             <th style={{...CL.th,width:24}}>#</th>
             <th style={{...CL.th,textAlign:"left",minWidth:130}}>LEARNER NAME</th>
+            <th style={{...CL.th,width:30}}>SEX</th>
             {SUBJECTS.map(s=><th key={s} style={CL.th}>{s}</th>)}
             {hasScores && <>
               <th style={CL.th}>TOTAL</th>
@@ -1556,6 +1814,7 @@ function PrintableClassList({ learners, grade, stream, term, year, classTeacher,
               <tr key={i} style={{background:i%2===0?"#fff":"#f9f9f9"}}>
                 <td style={CL.tdC}>{i+1}</td>
                 <td style={CL.td}>{l.name}</td>
+                <td style={CL.tdC}>{l.gender||"–"}</td>
                 {SUBJECTS.map(sub=>{
                   const g = hasScores?getGrade(l.scores[sub]):null;
                   return (
@@ -1608,11 +1867,13 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
       <div style={RC.header}>
         <div style={RC.schoolName}>{CURRENT_SCHOOL.name.toUpperCase()}</div>
         <div style={RC.schoolSub}>Naivasha · {["1","2","3"].includes(String(grade)) ? "Lower Primary" : "Upper Primary"}</div>
+        {CURRENT_SCHOOL.motto && <div style={{...RC.schoolSub,fontStyle:"italic"}}>Motto: {CURRENT_SCHOOL.motto}</div>}
         <div style={RC.reportTitle}>LEARNER'S {term.toUpperCase()} PROGRESS REPORT — {year}</div>
       </div>
 
       <div style={RC.infoRow}>
         <div style={RC.infoBlock}><span style={RC.infoLabel}>LEARNER:</span><span style={RC.infoVal}>{learner.name}</span></div>
+        {learner.gender && <div style={RC.infoBlock}><span style={RC.infoLabel}>GENDER:</span><span style={RC.infoVal}>{learner.gender==="M"?"Boy":"Girl"}</span></div>}
         <div style={RC.infoBlock}><span style={RC.infoLabel}>CLASS:</span><span style={RC.infoVal}>{label}</span></div>
         <div style={RC.infoBlock}><span style={RC.infoLabel}>TERM:</span><span style={RC.infoVal}>{term}</span></div>
         {classTeacher&&<div style={RC.infoBlock}><span style={RC.infoLabel}>CLASS TEACHER:</span><span style={RC.infoVal}>{classTeacher}</span></div>}
@@ -1635,7 +1896,7 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
             const sRank = subjectRanks && subjectRanks[sub] ? subjectRanks[sub] : "–";
             return (
               <tr key={sub} style={{background:i%2===0?"#fff":"#f5f5f5"}}>
-                <td style={RC.td}><b>{sub}</b></td>
+                <td style={RC.td}><b>{SUBJECT_LABELS[sub]||sub}</b></td>
                 <td style={{...RC.tdC,fontWeight:800,fontSize:14}}>{learner.scores[sub]||"–"}</td>
                 <td style={RC.tdC}>{g?<span style={RC.codeBadge}>{g.sub}</span>:"–"}</td>
                 <td style={{...RC.tdC,fontWeight:700}}>{g?.points||"–"}</td>
@@ -1667,49 +1928,12 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
         </div>
       </div>
 
-      {(() => {
-        const pathways = computePathwayScores(learner.scores);
-        const anyData = pathways.some(p => p.hasData);
-        if (!anyData) return null;
-        const strongest = pathways.reduce((a,b)=> b.percent > a.percent ? b : a, pathways[0]);
-        return (
-          <div style={{marginBottom:10}}>
-            <div style={RC.sectionTitle}>PATHWAY PERFORMANCE PROFILE</div>
-            <table style={RC.table}>
-              <thead>
-                <tr>
-                  <th style={RC.th}>Pathway</th>
-                  <th style={RC.th}>Learning Areas Used</th>
-                  <th style={RC.thC}>Score</th>
-                  <th style={RC.thC}>Performance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pathways.map((p,i)=>(
-                  <tr key={p.name} style={{background:i%2===0?"#fff":"#f5f5f5"}}>
-                    <td style={{...RC.td,fontWeight:800}}>{p.name}</td>
-                    <td style={{...RC.td,fontSize:9.5}}>{p.subjects.join(", ")}</td>
-                    <td style={{...RC.tdC,fontWeight:700}}>{p.score}/{p.outOf}</td>
-                    <td style={RC.tdC}>
-                      <div style={{display:"flex",alignItems:"center",gap:6}}>
-                        <div style={{flex:1,height:8,border:"1px solid #000",background:"#fff"}}>
-                          <div style={{height:"100%",width:`${Math.min(100,p.percent)}%`,background:"#000"}}></div>
-                        </div>
-                        <span style={{fontWeight:700,fontSize:9.5,minWidth:32,textAlign:"right"}}>{p.percent}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div style={{fontSize:9.5,color:"#222",marginTop:2}}>
-              <b>Strongest Pathway: {strongest.name} ({strongest.percent}%).</b> The learner demonstrates a
-              {" "}{strongest.percent>=70?"strong":strongest.percent>=50?"developing":"emerging"} inclination
-              towards the {strongest.name} pathway based on the areas assessed this term.
-            </div>
-          </div>
-        );
-      })()}
+      {comment && String(comment).trim() && (
+        <div style={{marginBottom:10}}>
+          <div style={RC.sectionTitle}>CLASS TEACHER'S COMMENT</div>
+          <div style={{border:"1px solid #bbb",padding:"8px 10px",fontSize:11,minHeight:34,whiteSpace:"pre-wrap",color:"#000"}}>{comment}</div>
+        </div>
+      )}
 
       <div style={RC.bottomRow}>
         <div style={RC.gradingKey}>
@@ -1732,7 +1956,7 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
           {/* Exam progress table removed */}
         </div>
       </div>
-      <div style={RC.footer}>{term} {year} · Sision Junior School, Naivasha · Excellence Through Diligence</div>
+      <div style={RC.footer}>{term} {year} · {CURRENT_SCHOOL.name}{CURRENT_SCHOOL.county?(", "+CURRENT_SCHOOL.county):""}</div>
     </div>
   );
 }
@@ -1741,6 +1965,7 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
 function ScoreEntryModal({ learner, grade, splitMode, onSave, onClose }) {
   const [scores, setScores] = useState({...blankScores(),...learner.scores});
   const [name, setName] = useState(learner.name);
+  const [gender, setGender] = useState(learner.gender || "");
   const [streamSel, setStreamSel] = useState(learner.stream || "East");
   return (
     <div style={M.overlay}>
@@ -1750,6 +1975,14 @@ function ScoreEntryModal({ learner, grade, splitMode, onSave, onClose }) {
           <div style={{...M.field,flex:2,minWidth:180}}>
             <label style={M.label}>Full Name</label>
             <input style={M.input} value={name} onChange={e=>setName(e.target.value.toUpperCase())} />
+          </div>
+          <div style={{...M.field,flex:1,minWidth:110}}>
+            <label style={M.label}>Gender</label>
+            <select style={M.input} value={gender} onChange={e=>setGender(e.target.value)}>
+              <option value="">–</option>
+              <option value="M">Boy</option>
+              <option value="F">Girl</option>
+            </select>
           </div>
           {grade==="6" && splitMode && (
             <div style={{...M.field,flex:1,minWidth:120}}>
@@ -1778,7 +2011,7 @@ function ScoreEntryModal({ learner, grade, splitMode, onSave, onClose }) {
         </div>
         <div style={M.actions}>
           <button style={M.cancel} onClick={onClose}>Cancel</button>
-          <button style={M.save} onClick={()=>onSave({name:name.trim()||learner.name, scores, stream:streamSel})}>Save</button>
+          <button style={M.save} onClick={()=>onSave({name:name.trim()||learner.name, gender, scores, stream:streamSel})}>Save</button>
         </div>
       </div>
     </div>
@@ -1787,6 +2020,7 @@ function ScoreEntryModal({ learner, grade, splitMode, onSave, onClose }) {
 
 function AddLearnerModal({ grade, splitMode, defaultStream, onAdd, onClose }) {
   const [name, setName] = useState("");
+  const [gender, setGender] = useState("");
   const [streamSel, setStreamSel] = useState(defaultStream || "East");
   return (
     <div style={M.overlay}>
@@ -1795,6 +2029,14 @@ function AddLearnerModal({ grade, splitMode, defaultStream, onAdd, onClose }) {
         <div style={M.field}>
           <label style={M.label}>Full Name</label>
           <input style={M.input} value={name} onChange={e=>setName(e.target.value.toUpperCase())} placeholder="e.g. JANE WANJIKU"/>
+        </div>
+        <div style={M.field}>
+          <label style={M.label}>Gender</label>
+          <select style={M.input} value={gender} onChange={e=>setGender(e.target.value)}>
+            <option value="">–</option>
+            <option value="M">Boy</option>
+            <option value="F">Girl</option>
+          </select>
         </div>
         {splitMode && (
           <div style={M.field}>
@@ -1807,7 +2049,7 @@ function AddLearnerModal({ grade, splitMode, defaultStream, onAdd, onClose }) {
         )}
         <div style={M.actions}>
           <button style={M.cancel} onClick={onClose}>Cancel</button>
-          <button style={M.save} onClick={()=>{if(name.trim())onAdd(name.trim(),streamSel);}}>Add Learner</button>
+          <button style={M.save} onClick={()=>{if(name.trim())onAdd(name.trim(),streamSel,gender);}}>Add Learner</button>
         </div>
       </div>
     </div>
@@ -1907,6 +2149,265 @@ function HistoryModal({ grade, stream, onClose }) {
 }
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
+// ─── RESULTS ANALYSIS MODAL ─────────────────────────────────────────────────
+function ResultsAnalysisModal({ ranked, levelCounts, means, label, term, year, onClose }) {
+  const total = ranked.length;
+  const marked = ranked.filter(r => r.total > 0);
+  const passCount = marked.filter(r => r.level==="EE" || r.level==="ME").length;
+  const passRate = marked.length ? Math.round((passCount/marked.length)*100) : 0;
+  const contentRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+
+  // Per-subject grade distribution
+  const subjectDist = {};
+  SUBJECTS.forEach(s => {
+    const counts = {EE:0, ME:0, AE:0, BE:0};
+    let n = 0;
+    ranked.forEach(r => {
+      const g = getGrade(r.scores[s]);
+      if (g) { counts[g.level]++; n++; }
+    });
+    subjectDist[s] = { counts, n };
+  });
+
+  const topPerformers = marked
+    .slice()
+    .sort((a,b)=>b.total-a.total)
+    .slice(0,5);
+
+  const champions = calcSubjectChampions(ranked);
+  const boysMarked = marked.filter(l=>l.gender==="M");
+  const girlsMarked = marked.filter(l=>l.gender==="F");
+  const boysPass = boysMarked.filter(l=>l.level==="EE"||l.level==="ME").length;
+  const girlsPass = girlsMarked.filter(l=>l.level==="EE"||l.level==="ME").length;
+  const boysPassRate = boysMarked.length ? Math.round((boysPass/boysMarked.length)*100) : 0;
+  const girlsPassRate = girlsMarked.length ? Math.round((girlsPass/girlsMarked.length)*100) : 0;
+
+  const box = { position:"fixed", inset:0, background:"rgba(0,0,0,0.6)", zIndex:1000,
+    display:"flex", alignItems:"center", justifyContent:"center", padding:12 };
+  const panel = { background:"#fff", borderRadius:14, maxWidth:720, width:"100%",
+    maxHeight:"92vh", display:"flex", flexDirection:"column", boxShadow:"0 8px 40px rgba(0,0,0,0.3)" };
+  const h2 = { fontWeight:900, fontSize:18, borderBottom:"3px solid #000", paddingBottom:8, marginBottom:14 };
+  const sectionH = { fontWeight:800, fontSize:13, margin:"18px 0 8px", borderLeft:"4px solid #000", paddingLeft:8 };
+  const statGrid = { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(90px,1fr))", gap:8, marginBottom:6 };
+  const statBox = { background:"#f4f4f4", borderRadius:8, padding:"10px 6px", textAlign:"center" };
+  const table = { width:"100%", borderCollapse:"collapse", fontSize:12 };
+  const th = { border:"1px solid #ddd", padding:"5px 6px", background:"#f0f0f0", fontSize:10.5, textTransform:"uppercase" };
+  const td = { border:"1px solid #ddd", padding:"5px 6px", textAlign:"center" };
+
+  function buildAnalysisHTML() {
+    const inner = contentRef.current ? contentRef.current.innerHTML : "";
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${label} Results Analysis</title>
+<style>
+  body{font-family:-apple-system,Arial,sans-serif;color:#111;padding:24px;}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:4px;}
+  th,td{border:1px solid #ddd;padding:5px 6px;text-align:center;}
+  th{background:#f0f0f0;font-size:10.5px;text-transform:uppercase;}
+  td:first-child,th:first-child{text-align:left;}
+  h1{font-size:16px;margin:0 0 2px;}
+  .sub{font-size:11px;color:#555;margin-bottom:14px;}
+  .sectionH{font-weight:800;font-size:13px;margin:18px 0 8px;border-left:4px solid #000;padding-left:8px;}
+  .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-bottom:6px;}
+  .statBox{background:#f4f4f4;border-radius:8px;padding:10px 6px;text-align:center;}
+  .statN{font-weight:900;font-size:20px;}
+  .statL{font-weight:700;font-size:10.5px;}
+  @media print{ body{padding:8px;} }
+</style></head><body>
+<h1>${(CURRENT_SCHOOL.name||"Results Analysis").toUpperCase()}${CURRENT_SCHOOL.county?" — "+CURRENT_SCHOOL.county.toUpperCase():""}</h1>
+<div class="sub">📊 Results Analysis — ${label} · ${term} ${year} · ${marked.length} of ${total} learner(s) with marks entered</div>
+${inner}
+</body></html>`;
+  }
+
+  function handlePrintAnalysis() {
+    const html = buildAnalysisHTML()
+      .replace(/class="sectionH"/g, 'style="font-weight:800;font-size:13px;margin:18px 0 8px;border-left:4px solid #000;padding-left:8px;"')
+      .replace(/class="statGrid"/g, 'style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-bottom:6px;"')
+      .replace(/class="statBox"/g, 'style="background:#f4f4f4;border-radius:8px;padding:10px 6px;text-align:center;"');
+    const w = window.open("", "_blank");
+    if (!w) { alert("Please allow pop-ups to print."); return; }
+    w.document.write(html);
+    w.document.close();
+    setTimeout(()=>{ w.focus(); w.print(); }, 300);
+  }
+
+  async function handleDownloadAnalysis() {
+    if (typeof html2pdf === "undefined") {
+      alert("PDF generator hasn't finished loading yet — check your internet connection and try again in a moment.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await html2pdf().set({
+        margin: 0.4,
+        filename: `${label.replace(/\s+/g,"_")}_ResultsAnalysis.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+        jsPDF: { unit: "in", format: "a4", orientation: "portrait" }
+      }).from(contentRef.current).save();
+    } catch (e) {
+      alert("Could not generate the PDF. Please try again, or use 🖨 Print instead.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={box} className="no-print">
+      <div style={panel}>
+        <div style={{padding:"24px 24px 0"}}>
+          <div style={h2}>📊 Results Analysis — {label}</div>
+          <div style={{fontSize:12, color:"#666", marginTop:-8, marginBottom:14}}>{term} {year} · {marked.length} of {total} learner(s) with marks entered</div>
+        </div>
+
+        <div style={{overflowY:"auto", flex:1, padding:"0 24px"}}>
+          <div ref={contentRef}>
+            <div style={sectionH}>Overall Distribution</div>
+            <div style={statGrid}>
+              {["EE","ME","AE","BE"].map(lv=>(
+                <div key={lv} style={statBox}>
+                  <div style={{fontWeight:900, fontSize:22}}>{levelCounts[lv]}</div>
+                  <div style={{fontWeight:700, fontSize:11}}>{lv}</div>
+                </div>
+              ))}
+              <div style={statBox}>
+                <div style={{fontWeight:900, fontSize:22}}>{means["_classMean"]!=="–"?means["_classMean"]+"%":"–"}</div>
+                <div style={{fontWeight:700, fontSize:11}}>CLASS MEAN</div>
+              </div>
+              <div style={statBox}>
+                <div style={{fontWeight:900, fontSize:22}}>{passRate}%</div>
+                <div style={{fontWeight:700, fontSize:11}}>PASS RATE (ME+)</div>
+              </div>
+            </div>
+
+            <div style={sectionH}>Performance by Gender</div>
+            <div style={statGrid}>
+              <div style={statBox}>
+                <div style={{fontWeight:900, fontSize:22}}>{means["_boysMean"]!=="–"?means["_boysMean"]+"%":"–"}</div>
+                <div style={{fontWeight:700, fontSize:11}}>BOYS MEAN ({boysMarked.length})</div>
+              </div>
+              <div style={statBox}>
+                <div style={{fontWeight:900, fontSize:22}}>{means["_girlsMean"]!=="–"?means["_girlsMean"]+"%":"–"}</div>
+                <div style={{fontWeight:700, fontSize:11}}>GIRLS MEAN ({girlsMarked.length})</div>
+              </div>
+              <div style={statBox}>
+                <div style={{fontWeight:900, fontSize:22}}>{means["_classMean"]!=="–"?means["_classMean"]+"%":"–"}</div>
+                <div style={{fontWeight:700, fontSize:11}}>GENERAL MEAN</div>
+              </div>
+              <div style={statBox}>
+                <div style={{fontWeight:900, fontSize:22}}>{boysPassRate}%</div>
+                <div style={{fontWeight:700, fontSize:11}}>BOYS PASS RATE</div>
+              </div>
+              <div style={statBox}>
+                <div style={{fontWeight:900, fontSize:22}}>{girlsPassRate}%</div>
+                <div style={{fontWeight:700, fontSize:11}}>GIRLS PASS RATE</div>
+              </div>
+            </div>
+
+            <div style={sectionH}>Grade Distribution by Subject</div>
+            <div style={{overflowX:"auto"}}>
+              <table style={table}>
+                <thead>
+                  <tr>
+                    <th style={{...th,textAlign:"left"}}>Subject</th>
+                    <th style={th}>Mean%</th>
+                    <th style={th}>Boys Mean</th>
+                    <th style={th}>Girls Mean</th>
+                    <th style={th}>EE</th>
+                    <th style={th}>ME</th>
+                    <th style={th}>AE</th>
+                    <th style={th}>BE</th>
+                    <th style={th}>Marked</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SUBJECTS.map(s=>(
+                    <tr key={s}>
+                      <td style={{...td,textAlign:"left",fontWeight:700}}>{s} <span style={{fontWeight:400,color:"#888"}}>({SUBJECT_LABELS[s]||s})</span></td>
+                      <td style={td}>{means[s]}</td>
+                      <td style={td}>{means[s+"_M"]}</td>
+                      <td style={td}>{means[s+"_F"]}</td>
+                      <td style={td}>{subjectDist[s].counts.EE}</td>
+                      <td style={td}>{subjectDist[s].counts.ME}</td>
+                      <td style={td}>{subjectDist[s].counts.AE}</td>
+                      <td style={td}>{subjectDist[s].counts.BE}</td>
+                      <td style={td}>{subjectDist[s].n}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={sectionH}>Subject Champions (Top Scorer per Subject)</div>
+            <div style={{overflowX:"auto"}}>
+              <table style={table}>
+                <thead>
+                  <tr>
+                    <th style={{...th,textAlign:"left"}}>Subject</th>
+                    <th style={{...th,textAlign:"left"}}>Champion</th>
+                    <th style={th}>Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SUBJECTS.map(s=>(
+                    <tr key={s}>
+                      <td style={{...td,textAlign:"left",fontWeight:700}}>{s} <span style={{fontWeight:400,color:"#888"}}>({SUBJECT_LABELS[s]||s})</span></td>
+                      <td style={{...td,textAlign:"left"}}>{champions[s]?champions[s].name:"–"}</td>
+                      <td style={td}>{champions[s]?champions[s].score:"–"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={sectionH}>Top 5 Performers</div>
+            {topPerformers.length === 0 ? (
+              <div style={{fontSize:12, color:"#888"}}>No marks entered yet.</div>
+            ) : (
+              <table style={table}>
+                <thead>
+                  <tr>
+                    <th style={th}>Rank</th>
+                    <th style={{...th,textAlign:"left"}}>Name</th>
+                    <th style={th}>Total</th>
+                    <th style={th}>Avg%</th>
+                    <th style={th}>Band</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topPerformers.map((l,i)=>{
+                    const g = l.total>0 ? getGrade(l.avg) : null;
+                    return (
+                      <tr key={l.name}>
+                        <td style={td}>{i+1}</td>
+                        <td style={{...td,textAlign:"left",fontWeight:700}}>{l.name}</td>
+                        <td style={td}>{l.total}</td>
+                        <td style={td}>{l.avg}%</td>
+                        <td style={td}>{g?g.sub:"–"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
+        <div style={{display:"flex", flexWrap:"wrap", justifyContent:"flex-end", gap:8, padding:"14px 24px", borderTop:"1px solid #eee"}}>
+          <button style={{background:"#fff",color:"#000",border:"1.5px solid #888",borderRadius:7,padding:"9px 16px",cursor:"pointer",fontSize:13,fontWeight:700}}
+            onClick={handlePrintAnalysis}>🖨 Print</button>
+          <button style={{background:"#fff",color:"#000",border:"1.5px solid #888",borderRadius:7,padding:"9px 16px",cursor:"pointer",fontSize:13,fontWeight:700}}
+            disabled={busy} onClick={handleDownloadAnalysis}>{busy?"Generating PDF…":"⬇ Download PDF"}</button>
+          <button style={{background:"#000",color:"#fff",border:"none",borderRadius:7,padding:"9px 20px",cursor:"pointer",fontSize:13,fontWeight:700}}
+            onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PRINTABLE CLASS LIST ─────────────────────────────────────────────────────
+
 function App() {
   const [userSession, setUserSession] = useState(() => {
     try {
@@ -2032,15 +2533,43 @@ function App() {
   const [subjectClass, setSubjectClass]     = useState(null); // {grade,stream}
   const [subjectChoice, setSubjectChoice]   = useState(null); // e.g. "MATH"
 
+  // Admin-editable grading scale and subject lists, loaded from GitHub once
+  // (or reset to defaults if never customized). Kept as state so the admin
+  // screens can update it; mirrored into the mutable module-level GRADES /
+  // SUBJECTS_LOWER_CFG / SUBJECTS_UPPER_CFG below on every render, the same
+  // way SUBJECTS itself is kept in sync.
+  const [gradingCfg, setGradingCfg] = useState(null);
+  const [subjectsLowerCfg, setSubjectsLowerCfg] = useState(null);
+  const [subjectsUpperCfg, setSubjectsUpperCfg] = useState(null);
+  const [showGrading, setShowGrading] = useState(false);
+  const [showManageSubjects, setShowManageSubjects] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  useEffect(() => {
+    if (!GH) return;
+    (async () => {
+      const g = await loadShared(gradingKey(), null);
+      if (g && Array.isArray(g) && g.length) setGradingCfg(g);
+      const sl = await loadShared(subjectsConfigKey("lower"), null);
+      if (sl && Array.isArray(sl) && sl.length) setSubjectsLowerCfg(sl);
+      const su = await loadShared(subjectsConfigKey("upper"), null);
+      if (su && Array.isArray(su) && su.length) setSubjectsUpperCfg(su);
+    })();
+  }, []);
+
   // Keep SUBJECTS pointed at the right set (Lower Primary 1-3 vs Upper
   // Primary 4-6) for whichever grade is actually in focus right now. Runs
   // synchronously on every render, before any JSX or handler below reads
   // SUBJECTS, so it's always correct for what's about to be shown/saved —
-  // no timing lag like a useEffect would have.
+  // no timing lag like a useEffect would have. Also keeps GRADES and the
+  // subject-config lists pointed at whatever the admin has customized.
   {
+    GRADES = gradingCfg || DEFAULT_GRADES;
+    SUBJECTS_LOWER_CFG = subjectsLowerCfg || DEFAULT_SUBJECTS_LOWER;
+    SUBJECTS_UPPER_CFG = subjectsUpperCfg || DEFAULT_SUBJECTS_UPPER;
     const isSubjectTeacherView = userSession && userSession.role === "subjectTeacher" && subjectClass;
     const activeGrade = isSubjectTeacherView ? subjectClass.grade : grade;
     SUBJECTS = getSubjectsForGrade(activeGrade);
+    SUBJECT_LABELS = getLabelsForGrade(activeGrade);
   }
   const [subjectTerm, setSubjectTerm]       = useState(()=>localStorage.getItem("sision_last_term")||"Mid Term 2");
   const [subjectYear, setSubjectYear]       = useState(()=>localStorage.getItem("sision_last_year")||"2026");
@@ -2122,6 +2651,43 @@ function App() {
     } finally {
       setSubjectSaving(false);
     }
+  }
+
+  // Mean score for the subject teacher's own subject, computed from whatever
+  // is currently on screen (before or after upload — always live).
+  function subjectListMean() {
+    const vals = subjectList.map(r=>Number(r.score)).filter(v=>!isNaN(v) && v>0);
+    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : "–";
+  }
+
+  async function downloadSubjectPDF() {
+    const JsPDFClass = getJsPDF();
+    if (!JsPDFClass) { alert("PDF export tools didn't load. Check your internet connection, then reload the app and try again."); return; }
+    const clsLabel = `Grade ${subjectClass.grade}${subjectClass.stream?` ${subjectClass.stream}`:""}`;
+    const doc = new JsPDFClass({ orientation: "portrait" });
+    let y = 16;
+    doc.setFontSize(14); doc.setFont(undefined,"bold");
+    doc.text(CURRENT_SCHOOL.name.toUpperCase(), 105, y, { align:"center" });
+    y += 6; doc.setFontSize(10); doc.setFont(undefined,"normal");
+    doc.text(`${subjectChoice} — ${clsLabel} — ${subjectTerm} ${subjectYear}`, 105, y, { align:"center" });
+    y += 8;
+    const meanVal = subjectListMean();
+    const meanBand = meanVal!=="–" ? getGrade(meanVal) : null;
+    doc.autoTable({
+      startY: y,
+      head: [["#","Name",`${subjectChoice} Score`,"Level"]],
+      body: subjectList.map((row,i)=>{
+        const g = getGrade(row.score);
+        return [i+1, row.name, row.score||"–", g?g.sub:"–"];
+      }),
+      styles: { fontSize: 9, cellPadding: 2.5 },
+      headStyles: { fillColor:[255,255,255], textColor:[0,0,0], fontStyle:"bold", lineColor:[0,0,0], lineWidth:0.3 },
+      margin: { left: 14, right: 14 },
+    });
+    y = doc.lastAutoTable.finalY + 8;
+    doc.setFontSize(11); doc.setFont(undefined,"bold");
+    doc.text(`Class Mean for ${subjectChoice}: ${meanVal}${meanVal!=="–"?"%":""}${meanBand?` (${meanBand.sub})`:""}`, 14, y);
+    doc.save(`${clsLabel.replace(/\s/g,"_")}_${subjectChoice}_${subjectTerm.replace(/\s/g,"_")}_${subjectYear}.pdf`);
   }
 
   React.useEffect(() => {
@@ -2439,7 +3005,7 @@ function App() {
     const split = isSplitGrade(grade);
     const oldStream = learner.stream || stream;
     const newStream = split ? (payload.stream || oldStream) : "";
-    const updated = { name: payload.name, scores: payload.scores };
+    const updated = { name: payload.name, gender: payload.gender || "", scores: payload.scores };
 
     if (split && newStream !== oldStream) {
       // Move learner from old stream's list to the new one
@@ -2456,12 +3022,12 @@ function App() {
     setDirty(true);
   }
 
-  function handleAddLearner(name, streamSel) {
+  function handleAddLearner(name, streamSel, gender) {
     const split = isSplitGrade(grade);
     const targetStream = split ? (streamSel || stream) : "";
     const lrns = getLearnersByStream(targetStream);
     if (lrns.find(l=>l.name===name)){setShowAddLearner(false);return;}
-    setLearnersByStream(targetStream, [...lrns,{name,scores:blankScores()}]);
+    setLearnersByStream(targetStream, [...lrns,{name,gender:gender||"",scores:blankScores()}]);
     setShowAddLearner(false);
     setDirty(true);
   }
@@ -2822,7 +3388,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
   // 50+ learners without freezing the browser. Layout mirrors the on-screen
   // report card: subjects table, summary, pathway profile, grading key.
   function drawReportCardPage(doc, learner, ctx) {
-    const { streamLabel, term, year, classTeacherName, totalInClass, subjectRanks } = ctx;
+    const { streamLabel, term, year, classTeacherName, totalInClass, subjectRanks, comment } = ctx;
     let y = 14;
     doc.setFontSize(15);
     doc.setFont(undefined, "bold");
@@ -2847,6 +3413,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
     doc.text(`Term: ${term}`, 140, y);
     y += 5;
     doc.text(`Class Teacher: ${classTeacherName || "-"}`, 12, y);
+    if (learner.gender) doc.text(`Gender: ${learner.gender==="M"?"Boy":"Girl"}`, 90, y);
     y += 7;
 
     const og = learner.total>0 ? getGrade(learner.avg) : null;
@@ -2857,7 +3424,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
         const v = learner.scores[sub] || "";
         const g = v!==""?getGrade(v):null;
         const rk = subjectRanks && subjectRanks[sub] ? subjectRanks[sub] : "-";
-        return [sub, v, g?g.sub:"-", g?g.points:"-", rk];
+        return [SUBJECT_LABELS[sub]||sub, v, g?g.sub:"-", g?g.points:"-", rk];
       }),
       styles: { fontSize: 8.5, cellPadding: 2 },
       headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: "bold", lineColor: [0,0,0], lineWidth: 0.3 },
@@ -2877,32 +3444,18 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
       styles: { fontSize: 8.5, cellPadding: 3, halign: "center", fontStyle: "bold", lineWidth: 0.4 },
       margin: { left: 12, right: 12 },
     });
-    y = doc.lastAutoTable.finalY + 5;
+    y = doc.lastAutoTable.finalY + 6;
 
-    const pathways = computePathwayScores(learner.scores);
-    const hasAnyScore = SUBJECTS.some(s => learner.scores[s]!==undefined && learner.scores[s]!=="");
-    if (hasAnyScore) {
+    if (comment && String(comment).trim()) {
       doc.setFontSize(9);
       doc.setFont(undefined, "bold");
-      doc.text("PATHWAY PERFORMANCE PROFILE", 12, y);
-      y += 2;
-      doc.autoTable({
-        startY: y,
-        head: [["Pathway","Learning Areas Used","Score","Performance"]],
-        body: pathways.map(p => [p.name, p.subjects.join(", "), `${p.score}/${p.outOf}`, `${p.percent}%`]),
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: "bold", lineColor: [0,0,0], lineWidth: 0.3 },
-        margin: { left: 12, right: 12 },
-      });
-      y = doc.lastAutoTable.finalY + 4;
-      const strongest = pathways.reduce((a,b)=> b.percent > a.percent ? b : a, pathways[0]);
-      const incl = strongest.percent>=70?"strong":strongest.percent>=50?"developing":"emerging";
-      doc.setFontSize(8);
+      doc.text("CLASS TEACHER'S COMMENT", 12, y);
+      y += 4;
+      doc.setFontSize(8.5);
       doc.setFont(undefined, "normal");
-      const note = `Strongest Pathway: ${strongest.name} (${strongest.percent}%). The learner demonstrates a ${incl} inclination towards the ${strongest.name} pathway based on the areas assessed this term.`;
-      const splitNote = doc.splitTextToSize(note, 186);
-      doc.text(splitNote, 12, y);
-      y += splitNote.length * 4 + 4;
+      const splitComment = doc.splitTextToSize(String(comment), 186);
+      doc.text(splitComment, 12, y);
+      y += splitComment.length * 4 + 5;
     }
 
     doc.autoTable({
@@ -2917,7 +3470,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
 
     doc.setFontSize(7.5);
     doc.setFont(undefined, "normal");
-    doc.text(`${term} ${year} · Sision Junior School, Naivasha`, 105, 290, { align: "center" });
+    doc.text(`${term} ${year} · ${CURRENT_SCHOOL.name}${CURRENT_SCHOOL.county?(", "+CURRENT_SCHOOL.county):""}`, 105, 290, { align: "center" });
   }
 
   // All-report-forms download: fast vector drawing, one page per learner.
@@ -2944,6 +3497,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
           term, year, classTeacherName: classTeacher,
           totalInClass: filledLearners.length,
           subjectRanks: subjectRankMap[learner.name]||{},
+          comment,
         });
       });
       const lbl = split&&viewMode==="combined" ? `Grade${grade}_Combined` : getStreamLabel(grade,stream).replace(/\s/g,"_");
@@ -3052,6 +3606,21 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
     onDone={() => setShowSchoolSettings(false)}
   />;
 
+  if (showGrading) return <GradingSystemScreen
+    grades={gradingCfg || DEFAULT_GRADES}
+    onSave={(g) => setGradingCfg(g)}
+    onDone={() => setShowGrading(false)}
+  />;
+
+  if (showManageSubjects) return <ManageSubjectsScreen
+    lower={subjectsLowerCfg || DEFAULT_SUBJECTS_LOWER}
+    upper={subjectsUpperCfg || DEFAULT_SUBJECTS_UPPER}
+    grade6Mode={grade6Mode}
+    onSaveLower={(l) => setSubjectsLowerCfg(l)}
+    onSaveUpper={(u) => setSubjectsUpperCfg(u)}
+    onDone={() => setShowManageSubjects(false)}
+  />;
+
   if (page==="home") {
     // Determine if current grade is split (East/West) for home UI
     const homeSplit = isSplitGrade(grade);
@@ -3086,6 +3655,12 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
           </button>}
           {userSession.role === "admin" && <button onClick={()=>setShowSchoolSettings(true)} style={{fontSize:11,padding:"4px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:20,color:"#fff",cursor:"pointer"}}>
             🏫 School Settings
+          </button>}
+          {userSession.role === "admin" && <button onClick={()=>setShowGrading(true)} style={{fontSize:11,padding:"4px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:20,color:"#fff",cursor:"pointer"}}>
+            🎯 Grading Scale
+          </button>}
+          {userSession.role === "admin" && <button onClick={()=>setShowManageSubjects(true)} style={{fontSize:11,padding:"4px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:20,color:"#fff",cursor:"pointer"}}>
+            📚 Manage Subjects & Classes
           </button>}
           {userSession.role === "admin" && <button onClick={()=>setShowWizard(true)} style={{fontSize:11,padding:"4px 12px",background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:20,color:"#fff",cursor:"pointer"}}>
             🔄 Re-run Year Setup
@@ -3262,8 +3837,14 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
               onClick={uploadSubjectScores} disabled={subjectSaving || subjectLoading || subjectNotConnected}>
               {subjectSaving?"Uploading…":(subjectSaved?"✓ Uploaded!":"⬆ Upload")}
             </button>
+            {subjectList.length>0 && <button style={S.ghostBtn} onClick={downloadSubjectPDF}>⬇ PDF</button>}
           </div>
         </div>
+        {subjectList.length>0 && (
+          <div style={{textAlign:"center",padding:"10px 0 0",fontSize:13}}>
+            <b>{subjectChoice} Class Mean: {subjectListMean()}{subjectListMean()!=="–"?"%":""}</b>
+          </div>
+        )}
         {subjectLoading ? (
           <div style={{padding:20,textAlign:"center",color:"#888"}}>Loading class list…</div>
         ) : subjectNotConnected ? (
@@ -3317,11 +3898,12 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
                 })}
               </tbody>
             </table>
-            <div style={{marginTop:16}}>
+            <div style={{marginTop:16,display:"flex",gap:8}}>
               <button style={{...S.ghostBtn,...(subjectSaved?{background:"#e8f5e9",color:"#2e7d32",borderColor:"#2e7d32"}:{})}}
                 onClick={uploadSubjectScores} disabled={subjectSaving || subjectLoading}>
                 {subjectSaving?"Uploading…":(subjectSaved?"✓ Uploaded!":"⬆ Upload")}
               </button>
+              <button style={S.ghostBtn} onClick={downloadSubjectPDF}>⬇ Download PDF</button>
             </div>
           </div>
         )}
@@ -3358,6 +3940,10 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
             scopeLabel={isSplitGrade(grade) ? (viewMode==="combined"?`${gradeLabel} (East + West)`:`${gradeLabel} ${stream}`) : `Grade ${grade}`}
             onSave={saveComment} onClose={()=>setShowComment(false)} />
         )}
+        {showAnalysis && (
+          <ResultsAnalysisModal ranked={ranked} levelCounts={levelCounts} means={means} label={label}
+            term={term} year={year} onClose={()=>setShowAnalysis(false)} />
+        )}
 
         {/* TOP BAR */}
         <div style={S.topBar} className="no-print">
@@ -3371,6 +3957,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
           </div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             <button style={S.ghostBtn} onClick={()=>setShowHistory(true)}>📂 History</button>
+            <button style={S.ghostBtn} onClick={()=>setShowAnalysis(true)}>📊 Analysis</button>
             <button style={S.ghostBtn} onClick={()=>setShowComment(true)}>💬 {comment?"Edit":"Add"} Class Comment</button>
             <input style={{...S.input,maxWidth:160,fontSize:12}} placeholder="🔍 Search learner…"
               value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} />
@@ -3594,7 +4181,7 @@ const S = {
 };
 
 const RC = {
-  page:        {background:"#fff",color:"#000",width:"190mm",margin:"0 auto 30px",padding:"10mm 12mm",fontFamily:"Arial,sans-serif",fontSize:11,boxSizing:"border-box",border:"1px solid #888"},
+  page:        {background:"#fff",color:"#000",width:"190mm",minHeight:"220mm",margin:"0 auto 30px",padding:"10mm 12mm",fontFamily:"Arial,sans-serif",fontSize:11,boxSizing:"border-box",border:"1px solid #888"},
   header:      {borderBottom:"3px solid #000",marginBottom:8,paddingBottom:7,textAlign:"center"},
   schoolName:  {fontSize:20,fontWeight:900,letterSpacing:1,color:"#000"},
   schoolSub:   {fontSize:10,color:"#444"},
