@@ -381,8 +381,13 @@ let LAST_SYNC_ERROR = "";
 function ghH() {
   return { Authorization: `token ${GH.token}`, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" };
 }
-function dbUrl() {
-  return `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/db.json`;
+function dbUrl(bustCache) {
+  const base = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/db.json`;
+  // Cache-busting query param on reads only (GitHub ignores unknown params,
+  // but it makes the URL unique so neither the browser's own HTTP cache nor
+  // any in-between proxy/CDN can silently hand back a stale response —
+  // which is otherwise indistinguishable from "my upload didn't take".
+  return bustCache ? `${base}?_=${Date.now()}` : base;
 }
 
 // Wraps fetch with a hard timeout. On a slow/flaky mobile connection a plain
@@ -403,7 +408,7 @@ async function loadDB(force) {
   if (DB_CACHE && !force) return DB_CACHE;
   if (!GH) return {};
   try {
-    const res = await fetchWithTimeout(dbUrl(), { headers: ghH() });
+    const res = await fetchWithTimeout(dbUrl(true), { headers: ghH(), cache: "no-store" });
     if (res.status === 404) { DB_CACHE = {}; DB_SHA = null; return {}; }
     if (res.status === 401 || res.status === 403) {
       LAST_SYNC_ERROR = "GitHub rejected the request (invalid token, or rate limit reached). Check the Setup screen's GitHub token.";
