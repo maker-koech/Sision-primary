@@ -512,9 +512,10 @@ async function saveSubjectScores(key, subject, updatesByName, rosterNames, retri
 //     learner) keeps the on-screen value.
 function mergeScoresForSave(localList, freshList, baselineMap) {
   const freshByName = {};
-  (freshList || []).forEach(l => { freshByName[l.name] = l.scores || {}; });
+  (freshList || []).forEach(l => { freshByName[l.name] = l; });
   return localList.map(local => {
-    const fresh = freshByName[local.name] || {};
+    const freshFull = freshByName[local.name] || {};
+    const fresh = freshFull.scores || {};
     const baseline = (baselineMap && baselineMap[local.name]) || {};
     const merged = {};
     SUBJECTS.forEach(sub => {
@@ -524,7 +525,16 @@ function mergeScoresForSave(localList, freshList, baselineMap) {
       const editedThisSession = String(localVal ?? "") !== String(baselineVal ?? "");
       merged[sub] = editedThisSession ? (localVal ?? "") : (freshVal !== undefined ? freshVal : (localVal ?? ""));
     });
-    return { name: local.name, scores: merged };
+    // Gender/stream aren't per-subject marks, so there's no "edited this
+    // session" tracking for them the way there is for scores above — the
+    // local (on-screen) value always wins if set, otherwise fall back to
+    // whatever is already saved remotely, so a gender set here is never
+    // silently dropped by a concurrent save from another device.
+    const gender = local.gender !== undefined && local.gender !== "" ? local.gender : (freshFull.gender || "");
+    const out = { name: local.name, gender, scores: merged };
+    if (local.stream !== undefined) out.stream = local.stream;
+    else if (freshFull.stream !== undefined) out.stream = freshFull.stream;
+    return out;
   });
 }
 
@@ -1412,8 +1422,9 @@ function YearAdvancementWizard({ fromYear, toYear, onDone, onSkip }) {
 
   // New Grade 1 registration
   const [newGr1Teacher, setNewGr1Teacher] = useState("");
-  const [newGr1Learners, setNewGr1Learners] = useState([]); // [{name}]
+  const [newGr1Learners, setNewGr1Learners] = useState([]); // [{name, gender}]
   const [newLearnerName, setNewLearnerName] = useState("");
+  const [newLearnerGender, setNewLearnerGender] = useState("");
 
   const [applying, setApplying] = useState(false);
   const [done, setDone] = useState(false);
@@ -1440,8 +1451,9 @@ function YearAdvancementWizard({ fromYear, toYear, onDone, onSkip }) {
     const n = newLearnerName.trim().toUpperCase();
     if (!n) return;
     if (newGr1Learners.find(l=>l.name===n)) return;
-    setNewGr1Learners(prev => [...prev, {name:n}]);
+    setNewGr1Learners(prev => [...prev, {name:n, gender:newLearnerGender}]);
     setNewLearnerName("");
+    setNewLearnerGender("");
   }
 
   function removeNewLearner(name) {
@@ -1467,14 +1479,15 @@ function YearAdvancementWizard({ fromYear, toYear, onDone, onSkip }) {
       const gr5names = gr5base.map(l=>l.name||l);
 
       if (grade5to6Mode === "single") {
-        await saveShared(learnersKey("6","East"), gr5names.map(n=>({name:n})));
+        await saveShared(learnersKey("6","East"), gr5names.map(n=>({name:n, gender:(gr5base.find(l=>(l.name||l)===n)||{}).gender||""})));
         await saveShared(learnersKey("6","West"), []);
         await saveShared(`sision_teacher_6_East_${toYear}`, grade6Single_teacher);
       } else {
         const eastList = gr5names.filter(n => grade6StreamAssign[n]==="East");
         const westList = gr5names.filter(n => grade6StreamAssign[n]==="West");
-        await saveShared(learnersKey("6","East"), eastList.map(n=>({name:n})));
-        await saveShared(learnersKey("6","West"), westList.map(n=>({name:n})));
+        const genderOf = n => (gr5base.find(l=>(l.name||l)===n)||{}).gender||"";
+        await saveShared(learnersKey("6","East"), eastList.map(n=>({name:n, gender:genderOf(n)})));
+        await saveShared(learnersKey("6","West"), westList.map(n=>({name:n, gender:genderOf(n)})));
         await saveShared(`sision_teacher_6_East_${toYear}`, grade6East_teacher);
         await saveShared(`sision_teacher_6_West_${toYear}`, grade6West_teacher);
       }
@@ -1483,29 +1496,29 @@ function YearAdvancementWizard({ fromYear, toYear, onDone, onSkip }) {
       // ── 3. Grade 4 → Grade 5 ────────────────────────────────────────────
       const gr4stored = await loadShared(learnersKey("4",""), null);
       const gr4base = gr4stored || (INITIAL_LEARNERS["4"][""]||[]);
-      await saveShared(learnersKey("5",""), gr4base.map(l=>({name:l.name||l})));
+      await saveShared(learnersKey("5",""), gr4base.map(l=>({name:l.name||l, gender:l.gender||""})));
       await saveShared(`sision_teacher_5_none_${toYear}`, grade5Teacher);
 
       // ── 4. Grade 3 → Grade 4 ────────────────────────────────────────────
       const gr3stored = await loadShared(learnersKey("3",""), null);
       const gr3base = gr3stored || (INITIAL_LEARNERS["3"][""]||[]);
-      await saveShared(learnersKey("4",""), gr3base.map(l=>({name:l.name||l})));
+      await saveShared(learnersKey("4",""), gr3base.map(l=>({name:l.name||l, gender:l.gender||""})));
       await saveShared(`sision_teacher_4_none_${toYear}`, grade4Teacher);
 
       // ── 5. Grade 2 → Grade 3 ────────────────────────────────────────────
       const gr2stored = await loadShared(learnersKey("2",""), null);
       const gr2base = gr2stored || (INITIAL_LEARNERS["2"][""]||[]);
-      await saveShared(learnersKey("3",""), gr2base.map(l=>({name:l.name||l})));
+      await saveShared(learnersKey("3",""), gr2base.map(l=>({name:l.name||l, gender:l.gender||""})));
       await saveShared(`sision_teacher_3_none_${toYear}`, grade3Teacher);
 
       // ── 6. Grade 1 → Grade 2 ────────────────────────────────────────────
       const gr1stored = await loadShared(learnersKey("1",""), null);
       const gr1base = gr1stored || (INITIAL_LEARNERS["1"][""]||[]);
-      await saveShared(learnersKey("2",""), gr1base.map(l=>({name:l.name||l})));
+      await saveShared(learnersKey("2",""), gr1base.map(l=>({name:l.name||l, gender:l.gender||""})));
       await saveShared(`sision_teacher_2_none_${toYear}`, grade2Teacher);
 
       // ── 7. Register new Grade 1 ─────────────────────────────────────────
-      await saveShared(learnersKey("1",""), newGr1Learners.map(l=>({name:l.name})));
+      await saveShared(learnersKey("1",""), newGr1Learners.map(l=>({name:l.name, gender:l.gender||""})));
       await saveShared(`sision_teacher_1_none_${toYear}`, newGr1Teacher);
 
       await markYearSetupDone(toYear, {grade5to6Mode});
@@ -1640,13 +1653,18 @@ function YearAdvancementWizard({ fromYear, toYear, onDone, onSkip }) {
                 onChange={e=>setNewLearnerName(e.target.value)}
                 onKeyDown={e=>{ if(e.key==="Enter") addNewLearner(); }}
                 placeholder="Learner full name" />
+              <select style={{...inp,flex:"0 0 90px"}} value={newLearnerGender} onChange={e=>setNewLearnerGender(e.target.value)}>
+                <option value="">Sex</option>
+                <option value="M">Boy</option>
+                <option value="F">Girl</option>
+              </select>
               <button style={ghost} onClick={addNewLearner}>+ Add</button>
             </div>
             {newGr1Learners.length > 0 && (
               <div style={{maxHeight:180,overflowY:"auto",border:"1px solid #ddd",borderRadius:8,padding:8,marginTop:8}}>
                 {newGr1Learners.map(l => (
                   <div key={l.name} style={{padding:"4px 2px",fontSize:13,display:"flex",justifyContent:"space-between"}}>
-                    <span>{l.name}</span>
+                    <span>{l.name} {l.gender&&<span style={{color:"#888",fontSize:11}}>({l.gender==="M"?"Boy":"Girl"})</span>}</span>
                     <button style={{background:"none",border:"none",color:"#c0392b",cursor:"pointer",fontSize:12}} onClick={()=>removeNewLearner(l.name)}>✕ Remove</button>
                   </div>
                 ))}
@@ -2881,14 +2899,17 @@ function App() {
   async function loadOneLearnersList(gr, str) {
     const lk = learnersKey(gr, str||"");
     const stored = await loadShared(lk, null);
-    // Only use the names from the saved roster — NEVER carry over its scores,
-    // since those scores belong to whichever term was last saved. The correct
-    // term's marks (if any) are applied separately below by loadOneScores.
-    if (stored && stored.length > 0) return stored.map(l=>({name:l.name, scores:blankScores()}));
+    // Only use the names/gender from the saved roster — NEVER carry over its
+    // scores, since those scores belong to whichever term was last saved.
+    // The correct term's marks (if any) are applied separately below by
+    // loadOneScores. Gender (and stream, for split grades) DO need to be
+    // carried over here, or every "Open Class" would silently reset them
+    // back to blank even though they're correctly saved in the roster.
+    if (stored && stored.length > 0) return stored.map(l=>({name:l.name, gender:l.gender||"", stream:l.stream, scores:blankScores()}));
     // Fall back to initial data only for 2026 (seed year)
     if (Number(year) <= 2026) {
       const base = (INITIAL_LEARNERS[gr]||{})[str||""]||[];
-      return base.map(l=>({name:l.name, scores:blankScores()}));
+      return base.map(l=>({name:l.name, gender:l.gender||"", scores:blankScores()}));
     }
     // In 2027+ with no stored data, start empty
     return [];
@@ -2957,10 +2978,10 @@ function App() {
       const split = isSplitGrade(grade);
       let ok = true;
       if (split) {
-        const eastLocal = learnersEast.map(l=>({name:l.name,scores:l.scores}));
-        const westLocal = learnersWest.map(l=>({name:l.name,scores:l.scores}));
-        ok = await saveShared(learnersKey(grade,"East"), eastLocal.map(l=>({name:l.name}))) && ok;
-        ok = await saveShared(learnersKey(grade,"West"), westLocal.map(l=>({name:l.name}))) && ok;
+        const eastLocal = learnersEast.map(l=>({name:l.name,gender:l.gender||"",scores:l.scores}));
+        const westLocal = learnersWest.map(l=>({name:l.name,gender:l.gender||"",scores:l.scores}));
+        ok = await saveShared(learnersKey(grade,"East"), eastLocal.map(l=>({name:l.name,gender:l.gender}))) && ok;
+        ok = await saveShared(learnersKey(grade,"West"), westLocal.map(l=>({name:l.name,gender:l.gender}))) && ok;
         const eastResult = await saveScoresSafely(storageKey(grade,"East",term,year), eastLocal, baselineRef.current);
         const westResult = await saveScoresSafely(storageKey(grade,"West",term,year), westLocal, baselineRef.current);
         ok = ok && eastResult.ok && westResult.ok;
@@ -2970,8 +2991,8 @@ function App() {
           baselineRef.current = { ...captureBaseline(eastResult.merged), ...captureBaseline(westResult.merged) };
         }
       } else {
-        const singleLocal = learnersSingle.map(l=>({name:l.name,scores:l.scores}));
-        ok = await saveShared(learnersKey(grade,""), singleLocal.map(l=>({name:l.name}))) && ok;
+        const singleLocal = learnersSingle.map(l=>({name:l.name,gender:l.gender||"",scores:l.scores}));
+        ok = await saveShared(learnersKey(grade,""), singleLocal.map(l=>({name:l.name,gender:l.gender}))) && ok;
         const result = await saveScoresSafely(storageKey(grade,"",term,year), singleLocal, baselineRef.current);
         ok = ok && result.ok;
         if (result.ok) {
@@ -4030,6 +4051,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
                 {split && <th style={S.th}>Gr. Rank</th>}
                 {viewMode==="combined" && <th style={S.th}>Stream</th>}
                 <th style={{...S.th,textAlign:"left",minWidth:140}}>Name</th>
+                <th style={S.th}>Sex</th>
                 {SUBJECTS.map(s=><th key={s} style={S.th}>{s}</th>)}
                 <th style={S.th}>Total</th>
                 <th style={S.th}>Avg</th>
@@ -4055,6 +4077,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
                       <td style={{...S.tdC,borderRight:"1px solid #e0e0e0",fontSize:10}}>{l.stream}</td>
                     )}
                     <td style={{...S.td,fontWeight:700,borderRight:"1px solid #e0e0e0"}}>{l.name}</td>
+                    <td style={{...S.tdC,borderRight:"1px solid #e0e0e0",fontSize:10}}>{l.gender==="M"?"B":l.gender==="F"?"G":"–"}</td>
                     {SUBJECTS.map(sub=>{
                       const g=getGrade(l.scores[sub]);
                       return (
@@ -4080,7 +4103,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
               {/* MEANS ROW */}
               {hasScores && (
                 <tr style={{background:"#e8e8e8",borderTop:"2px solid #000",fontWeight:700}}>
-                  <td style={S.tdC} colSpan={split?(viewMode==="combined"?4:3):2}>CLASS MEAN</td>
+                  <td style={S.tdC} colSpan={(split?(viewMode==="combined"?4:3):2)+1}>CLASS MEAN</td>
                   {SUBJECTS.map(sub=>(
                     <td key={sub} style={{...S.tdC,fontSize:11}}>
                       <div style={{fontWeight:700}}>{means[sub]}</div>
@@ -4090,6 +4113,20 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
                   <td colSpan={6} style={{...S.tdC,fontSize:11}}>
                     Class Mean: <b>{means["_meanTotal"]}/{means["_maxTotal"]}</b> &nbsp;(Avg: <b>{means["_classMean"]!=="–"?means["_classMean"]+"%":"–"}</b>)
                   </td>
+                </tr>
+              )}
+              {means["_boysCount"]>0 && (
+                <tr style={{background:"#eef4fb",fontWeight:600}}>
+                  <td style={S.tdC} colSpan={(split?(viewMode==="combined"?4:3):2)+1}>BOYS MEAN</td>
+                  {SUBJECTS.map(sub=><td key={sub} style={{...S.tdC,fontSize:11}}>{means[sub+"_M"]}</td>)}
+                  <td colSpan={6} style={{...S.tdC,fontSize:11}}>Boys Avg: <b>{means["_boysMean"]!=="–"?means["_boysMean"]+"%":"–"}</b></td>
+                </tr>
+              )}
+              {means["_girlsCount"]>0 && (
+                <tr style={{background:"#fdeef3",fontWeight:600}}>
+                  <td style={S.tdC} colSpan={(split?(viewMode==="combined"?4:3):2)+1}>GIRLS MEAN</td>
+                  {SUBJECTS.map(sub=><td key={sub} style={{...S.tdC,fontSize:11}}>{means[sub+"_F"]}</td>)}
+                  <td colSpan={6} style={{...S.tdC,fontSize:11}}>Girls Avg: <b>{means["_girlsMean"]!=="–"?means["_girlsMean"]+"%":"–"}</b></td>
                 </tr>
               )}
             </tbody>
@@ -4181,7 +4218,7 @@ const S = {
 };
 
 const RC = {
-  page:        {background:"#fff",color:"#000",width:"190mm",minHeight:"220mm",margin:"0 auto 30px",padding:"10mm 12mm",fontFamily:"Arial,sans-serif",fontSize:11,boxSizing:"border-box",border:"1px solid #888"},
+  page:        {background:"#fff",color:"#000",width:"190mm",minHeight:"265mm",margin:"0 auto 30px",padding:"10mm 12mm",fontFamily:"Arial,sans-serif",fontSize:11,boxSizing:"border-box",border:"1px solid #888",display:"flex",flexDirection:"column"},
   header:      {borderBottom:"3px solid #000",marginBottom:8,paddingBottom:7,textAlign:"center"},
   schoolName:  {fontSize:20,fontWeight:900,letterSpacing:1,color:"#000"},
   schoolSub:   {fontSize:10,color:"#444"},
@@ -4211,7 +4248,7 @@ const RC = {
   commentLabel: {fontSize:8,fontWeight:800,letterSpacing:0.5,color:"#333"},
   commentText: {fontSize:9.5,lineHeight:1.4,color:"#222",marginTop:2,fontStyle:"italic"},
   datesLine:   {fontSize:10,color:"#000",marginBottom:6},
-  footer:      {textAlign:"center",fontSize:8,color:"#555",borderTop:"1px solid #bbb",paddingTop:5,marginTop:4},
+  footer:      {textAlign:"center",fontSize:8,color:"#555",borderTop:"1px solid #bbb",paddingTop:5,marginTop:"auto"},
 };
 
 const CL = {

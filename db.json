@@ -1,1 +1,2624 @@
-{"sision_learners_2_none":[{"name":"ZIPPORAH WANJIRU"},{"name":"JANE WANGUI"},{"name":"IAN MWANGI"},{"name":"ALICIOUS ANGEL"},{"name":"DANIEL KAMAU"},{"name":"LEAH NYAMBURA"},{"name":"LEAH WANJIRU"},{"name":"BEAUTRICE WANJIRU"},{"name":"SHARON WANJIKU"},{"name":"MAXWELL MUGURE"},{"name":"JOSEPH MBUGUA"},{"name":"SUMMERLOVE MUGURE"},{"name":"DANSON GACHIE"},{"name":"DAVIS MUIGAI"},{"name":"LYAN LEMAYAN"},{"name":"EUNICE NJERI"},{"name":"MORGAN GITAU"},{"name":"JAYDEN MBUGUA"},{"name":"JAMES NGUGI"},{"name":"FREDRICK NJENGA"},{"name":"ESTHER NJOKI"},{"name":"TRISTER MUTHONI"},{"name":"SYLVIA WAMBUI"},{"name":"PETER MUGO"},{"name":"BRIAN KURIA"},{"name":"BETH WANJIRU"},{"name":"CARZIUS MWANGI"},{"name":"AMOS MBUGUA"},{"name":"RAELYNN WANJIRU"},{"name":"EMMANUEL WAWERU"},{"name":"JOSEPH GATHERU"},{"name":"SAMUEL KAMAU"},{"name":"JOHN NGUGI"},{"name":"NELIAH WAIRIMU"},{"name":"STACY NJAMBI"},{"name":"HOPE WANGARI"},{"name":"JOSEPH NG'ANG'A"},{"name":"SALOME NDUTA"},{"name":"MARGARET WANJAI"},{"name":"JOSSAN NJOROGE"},{"name":"EMMACULATE GATHONI"},{"name":"PETER GICHU"},{"name":"ANN WANGUI"},{"name":"PRINCESS WANJIRU"},{"name":"PATRICK CHEGE"},{"name":"TANIA MUTHONI"},{"name":"STEPHEN GITHINJI"},{"name":"IBRAHIM KAHURA"},{"name":"PETER KIMANI"},{"name":"DAVID CHEGE"},{"name":"DAVID THUKU"},{"name":"MIRIAM WANJIKU"},{"name":"PURITY MUMBI"}],"sision_learners_6_East":[{"name":"ANNE WANJIRU"},{"name":"LAZARUS NJOROGE"},{"name":"BLESSINGS WAMBUI"},{"name":"JOYLEEN MUTHONI"},{"name":"ASHLEY WAMBUI"},{"name":"JAYVINE MWANGI"},{"name":"JOSEPH NDUNGU"},{"name":"MARYANNE WATIRI"},{"name":"EVAN KIMANI"},{"name":"JOHN NJOROGE"},{"name":"JOHN GITAU"},{"name":"MARGARET NJOKI"},{"name":"EUNICE WAMBUI"},{"name":"JOHN KIMANI"},{"name":"IMMANUEL EDVINE"},{"name":"MITCHELLE WANJIKU K."},{"name":"JOSEPH MUCHERU"},{"name":"BETHA NJERI"},{"name":"MICHAEL KINYANJUI"},{"name":"ESTHER MUMBI"},{"name":"SAMUEL NJUGUNA"},{"name":"SUSAN WANGUI"},{"name":"MARGARET NJERI"},{"name":"RUTH WANJIRU"},{"name":"JOHN KINYANJUI"},{"name":"BLESS GITAU"},{"name":"PETER MBUGUA"},{"name":"JOSEPH WACHIRA"},{"name":"LUKE KIMUNYI"},{"name":"JOHN MAINA"},{"name":"JANE WANJIRU"},{"name":"PAULINE NYAMBURA"},{"name":"ELIZABETH NJOKI"},{"name":"FRANCIS KAMAU"},{"name":"SHARLEEN WANJIKU"},{"name":"DANIEL KANG'ETHE"},{"name":"BENSON NGUGI"},{"name":"VICTOR NDUNGU"},{"name":"RUTH RUGURU"},{"name":"PETER NJUGUNA"},{"name":"JOSEPH KIHARA"}],"sision_learners_6_West":[{"name":"IAN CHEGE"},{"name":"PRECIOUS WANGUI"},{"name":"JOY WANGUI"},{"name":"CAROLINE MUMBI"},{"name":"STEPHEN NJOROGE"},{"name":"MARY WANGUI"},{"name":"MARY NJERI"},{"name":"VINCE KAMAU"},{"name":"ZIPPORAH WANJIRU"},{"name":"DANIEL MWANGI"},{"name":"TABITHA MURINGI"},{"name":"ALEX KOIGI"},{"name":"SAMUEL MWANGI"},{"name":"PAUL KIMANI"},{"name":"ELVIS KINYANJUI"},{"name":"TERRY NDUTA"},{"name":"JOSEPH MBUGUA"},{"name":"SAMUEL CHACHA"},{"name":"MERCY NJERI"},{"name":"PETER KIMANI"},{"name":"MITCHELL WANJIKU"},{"name":"FAITH WANGUI"},{"name":"MARY WAITHONI"},{"name":"HILDAH WAITHIRA"},{"name":"GRACE WAITHIRA"},{"name":"PAUL KAMAU"},{"name":"VICTOR KABERI"},{"name":"SAMUEL MUTURI"},{"name":"SUSAN NJAMBI"},{"name":"JAMES BIARU"},{"name":"ROSE WAMBUI"},{"name":"NATHANIEL KIMUTHU"},{"name":"DAVID MACHARIA"},{"name":"STEPHEN NDUNGU"},{"name":"JOHN CHEGE"},{"name":"ARMSTRONG MUNIU"},{"name":"NANCY MWIHAKI"},{"name":"BRIAN NDIRANGU"},{"name":"PAUL KAGURU"},{"name":"GLADYS WAMBUI"},{"name":"VINCENT MAINA"},{"name":"STEPHEN GITHAIGA"},{"name":"BRIAN GICHEHA"},{"name":"MARY NYAMBURA"}],"sision_learners_1_none":[{"name":"MARTIN KAROBIA"},{"name":"ANGELA NYAGUTHII"},{"name":"ALOICE MBURU"},{"name":"JOY NJAMBI"},{"name":"MARVEL WAMBUI"},{"name":"KARL KANJA"},{"name":"JOYLINE WANGARI"},{"name":"CECILIA MUGURE"},{"name":"FAVOUR WAMBUI"},{"name":"AMELIA NJERI"},{"name":"SELINA WANJIRU"},{"name":"PRINCESS WACHEKE"},{"name":"DAVID NGINYO"},{"name":"IRENE WANJIRU"},{"name":"TERESIA MUGURE"},{"name":"BRAVIN GACHIE"},{"name":"GEORGE KARANI"},{"name":"EMMANUEL MBUGUA"},{"name":"ANNE GATHONI"},{"name":"HARRISON NJENGA"},{"name":"KEAGAN KIRUKU"},{"name":"LEVY MWANGI"},{"name":"JOSEPH NKURUMAH"},{"name":"DORCAS WAMBUI"},{"name":"DAVID MACHARIA"},{"name":"BENSON KARIUKI"},{"name":"JOHN NJONGORO"},{"name":"YVONNE MUTHONI"},{"name":"ELIZABETH WANGARI"},{"name":"MILKAH WANJIRU"},{"name":"JOHN KARANJA"},{"name":"EMMANUEL MACHARIA"},{"name":"JOHN CHEGE"},{"name":"OLIVIA ANGEL KIBUGI"},{"name":"RYAN CHEGE"},{"name":"SIMON KINYANJUI"},{"name":"FRANCIS KIMANI"},{"name":"LEWIS NJUGUNA"},{"name":"BRIAN MAINA"},{"name":"ANNE WAMBUI"},{"name":"STEPHEN KAMAU"},{"name":"ROBERT NJOROGE"},{"name":"VINCENT KANYORA"},{"name":"ANN WACERA"},{"name":"BETH WANJIRU"},{"name":"WILSON KASEKWA"},{"name":"STEPHEN NJOROGE"},{"name":"FABIAN GATHAKU"}],"sision_learners_3_none":[{"name":"GEORGE NGUGI"},{"name":"SHANTEL NJERI"},{"name":"BLESSING WAMBUI"},{"name":"ROSEBANCY WANJIRU"},{"name":"JOSEPH IGUANYA"},{"name":"JOYCE WACUKA"},{"name":"ROBERT MUNGAI"},{"name":"ELIZABETH WANGUI"},{"name":"BETH WANJIKU"},{"name":"JOAN NJERI"},{"name":"JOSEPH MWANGI"},{"name":"GEORGE NDUATI"},{"name":"MALCOM KARANJA"},{"name":"ETANA WANJIRU"},{"name":"JEMIMAH WANJIRU"},{"name":"JOHN MUNGAI"},{"name":"RUTH WAMBUI"},{"name":"JOHN KIMANI"},{"name":"ELIZABETH RUGURU"},{"name":"NICKSON NGUGI"},{"name":"JOSPHINE WANGUI"},{"name":"FRANCIS NJENGA"},{"name":"JIAN KIMANI"},{"name":"JOSEPH GACUNGA"},{"name":"LUSET WAITHERA"},{"name":"ELIZABETH WANJIKU"},{"name":"LOISE NYATHIRA"},{"name":"GLADYS WANGARI"},{"name":"MIRRIAM WANJIKU"},{"name":"MARY WAITHERA"},{"name":"CORNELIUS KIAMA"},{"name":"BENSON MAINA"},{"name":"WINROSE WANGARI"},{"name":"EVALYNE WAIRIMU"},{"name":"CARSON MAKUMI"},{"name":"TABITHA MURINGE"},{"name":"SAMUEL NJOROGE"},{"name":"JAMES KIMANI"},{"name":"CECILIA MUGURE"},{"name":"SHANTEL NYAMBURA"},{"name":"JOSEPH NJUGUNA"},{"name":"LYAN WAMBUGU"},{"name":"MICHAEL IHUGO"},{"name":"JOSHUA KIARIE"},{"name":"MOSES MWANGI"},{"name":"TERESIAH WANJIRU"},{"name":"FRANCIS MWAURA"},{"name":"SAMUEL WAINAINA"},{"name":"LAWRENCE NJENGA"},{"name":"MINNE MUTHONI"},{"name":"LEWIS MWANGI"},{"name":"DANIEL GICHOHI"},{"name":"JAMES KUNGU"},{"name":"HANNAH WAMBUI"},{"name":"JOHN GACHUIRI"},{"name":"STEPHEN THIONGO"},{"name":"JOSEPH NJOROGE"},{"name":"PATRICK CHEGE"}],"sision_learners_4_none":[{"name":"EUNICE NDUNGU"},{"name":"BLESSED MBUGUA"},{"name":"DANSON GACHIE"},{"name":"CONSTANT YANIS"},{"name":"MARVEL MBUGUA"},{"name":"PAUL CHEGE"},{"name":"MONICA WAMBUI"},{"name":"CLAIRE WANGUI"},{"name":"GRACE WAIRIMU"},{"name":"PETER KIMANI"},{"name":"ANTONY KABIRU"},{"name":"TANYA WACUKA"},{"name":"EMMANUEL MWAURA"},{"name":"CHRISTABEL WANGARI"},{"name":"RAHAB GATHONI"},{"name":"DAVID MUNGAI"},{"name":"PROMISE MAINA"},{"name":"MICHAEL NJENGA"},{"name":"JAMES GITHINJI"},{"name":"VINCENT NJENGA"},{"name":"FAITH WANGUI"},{"name":"BENARD MUIGAI"},{"name":"MARGARET WANJIRU"},{"name":"JOSEPH GACHUNGA"},{"name":"MARY WAMBUI"},{"name":"JAMES KARANJA"},{"name":"VIOLET BOKE"},{"name":"MARGARET NYOKABI"},{"name":"CELESTINE KERUBO"},{"name":"JOY WAMBUI"},{"name":"MARIA WAMBUI"},{"name":"CYTHIA WAIRIMU"},{"name":"CHRISTINE WAIRIMU"},{"name":"JOY NYAMBURA"},{"name":"LEWIS WAWERU"},{"name":"NATALIE NYOKABI"},{"name":"IAN KAIRU"},{"name":"MIRIAM WAMBUI"},{"name":"JOHN KAMAU"},{"name":"NAOMI WAMBUI"},{"name":"JOYANNE NJERI"},{"name":"PATRICIA NJERI"},{"name":"ALEX WAINAINA"},{"name":"BRIAN NJOROGE"},{"name":"JOSEPH NDUNGU"},{"name":"FLORENCE NYOKABI"},{"name":"JAMES NJOROGE"},{"name":"GEORGE GIKABA"},{"name":"PRECIOUS NYAWIRA"},{"name":"SARAH NJERI"},{"name":"WILFRED MBUGUA"},{"name":"PENINAH MUMBI"},{"name":"RUTH NYAMBURA"},{"name":"CHARITY WANJIKU"},{"name":"LEE MWANGI"},{"name":"GRACE WANJIKU"},{"name":"FRANCIS NJOROGE"},{"name":"WILLIAM KUNGU"},{"name":"JECINTA WAMBUI"},{"name":"SHEITON KIARIE"},{"name":"GRACE NJERI"},{"name":"JOHN NDIRANGU"},{"name":"GODFREY NJUGE"},{"name":"AGNES WANGUI"},{"name":"AGNES WAMBUI"},{"name":"CHARLES KAMAU"},{"name":"MARGARET WAMBUI"},{"name":"JOHN MAINA"},{"name":"DANIEL KIBE"},{"name":"LUCY WANJIRU"},{"name":"HANNAH NJERI"},{"name":"JOSEPH MBATIA"}],"sision_learners_5_none":[{"name":"MARGARET WANJIKU N"},{"name":"IBRA WAWERU"},{"name":"JANICE NYATHIRA"},{"name":"RYAN KIMANI"},{"name":"ALICE NERI W"},{"name":"MARGARET WANGUI"},{"name":"HANNAH WANJIRU"},{"name":"SERAH WANJIKU"},{"name":"LUCY MUTHAKI"},{"name":"SAMUEL NERI"},{"name":"JOHNSON KAHATO"},{"name":"TABITHA GITAU"},{"name":"LEWIS WANJIKU"},{"name":"PETER NJENGA"},{"name":"MOSES KARANJA"},{"name":"MERCY MBURU"},{"name":"ALICE WANJIKU W"},{"name":"FIDELIS NERI"},{"name":"PRECIOUS WANJIKU"},{"name":"JAYDEN NYAMBURA"},{"name":"BRANDON BAHATI"},{"name":"TABITHA MWANGI"},{"name":"ISAAC NERI"},{"name":"MERCY MURURI"},{"name":"EUGENE WANJIKU"},{"name":"PURITY NJENGA"},{"name":"ISAAC WANJIKU"},{"name":"NANCY GICHAGI"},{"name":"FRANCIS WANJIRU"},{"name":"ASUMPTA NGITHUA"},{"name":"ALICE WAMBUI"},{"name":"FIDAH WATATI"},{"name":"BLESSING KAWETO"},{"name":"LEWIS NERI"},{"name":"MARGARET MACHARIA"},{"name":"ZACHARIAH NJUGUNA"},{"name":"SHANIZE WAMBUI"},{"name":"PETER MBAUNI"},{"name":"JOYCE WAIRIMU"},{"name":"LEWIS NJOGU"},{"name":"NICK KIMANI"},{"name":"JOHN GATIMU"},{"name":"MARY MERI"},{"name":"PETER MUGO"},{"name":"VERONICAH MUKUHI"},{"name":"GRACE WAMBUI"},{"name":"ROSEMARY NJOKI"},{"name":"ALICE WANJIRA"},{"name":"IMMACULATE MERI"},{"name":"GERALD MUHIA"},{"name":"LYDIA WAMARITHA"},{"name":"MILIANT WAMBUI"},{"name":"JANE WAMBUI"},{"name":"GEOFFREY NDIRANGU"},{"name":"ISAAC MUORIA"},{"name":"JANE WATHERA"},{"name":"JEREMIAH NGANGLA"},{"name":"IAN NGANGLA"},{"name":"STEPHEN MBUTHIA"},{"name":"JAMES MAINA"}],"gradingSystemOverride":[{"sub":"EE","level":"EE","min":76,"max":100,"points":4,"band":"Exceeding Expectations","remark":"Exceptional mastery; exceeds expectations"},{"sub":"ME","level":"ME","min":51,"max":75,"points":3,"band":"Meeting Expectations","remark":"Solid understanding"},{"sub":"AE","level":"AE","min":26,"max":50,"points":2,"band":"Approaching Expectations","remark":"Developing understanding"},{"sub":"BE","level":"BE","min":0,"max":25,"points":1,"band":"Below Expectations","remark":"Needs support"}],"sision_scores_1_none_End_Term_2_2026":[{"name":"ALOICE MBURU","scores":{"ENG":"2","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"AMELIA NJERI","scores":{"ENG":"63","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"ANGELA NYAGUTHII","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"ANN WACERA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"ANNE GATHONI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"ANNE WAMBUI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"BENSON KARIUKI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"BETH WANJIRU","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"BRAVIN GACHIE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"BRIAN MAINA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"CECILIA MUGURE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"DAVID MACHARIA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"DAVID NGINYO","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"DORCAS WAMBUI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"ELIZABETH WANGARI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"EMMANUEL MACHARIA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"EMMANUEL MBUGUA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"FABIAN GATHAKU","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"FAVOUR WAMBUI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"FRANCIS KIMANI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"GEORGE KARANI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"HARRISON NJENGA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"IRENE WANJIRU","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"JOHN CHEGE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"JOHN KARANJA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"JOHN NJONGORO","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"JOSEPH NKURUMAH","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"JOY NJAMBI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"JOYLINE WANGARI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"KARL KANJA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"KEAGAN KIRUKU","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"LEVY MWANGI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"LEWIS NJUGUNA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"MARTIN KAROBIA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"MARVEL WAMBUI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"MILKAH WANJIRU","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"OLIVIA ANGEL KIBUGI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"PRINCESS WACHEKE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"ROBERT NJOROGE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"RYAN CHEGE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"SELINA WANJIRU","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"SIMON KINYANJUI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"STEPHEN KAMAU","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"STEPHEN NJOROGE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"TERESIA MUGURE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"VINCENT KANYORA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"WILSON KASEKWA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"YVONNE MUTHONI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}}],"userOverrides":{"grade1":{"name":"Mr Martin"},"grade2":{"name":"Md Monica"},"grade3":{"name":"Md Stella wagana"},"grade4":{"name":"Md Stella Kanja"},"grade5":{"name":"Md Ann karanja"},"grade6east":{"name":"Md Cecilia"},"grade6west":{"name":"Md Jecinta"},"maths":{"name":"Subject Teacher (ed"}},"sision_scores_1_none_Mid_Term_2_2026":[{"name":"ALOICE MBURU","scores":{"ENG":"","KISW":"","MATH":"33","ENV":"","CRE":"","C/A":""}},{"name":"AMELIA NJERI","scores":{"ENG":"","KISW":"","MATH":"78","ENV":"","CRE":"","C/A":""}},{"name":"ANGELA NYAGUTHII","scores":{"ENG":"","KISW":"","MATH":"90","ENV":"","CRE":"","C/A":""}},{"name":"ANN WACERA","scores":{"ENG":"","KISW":"","MATH":"78","ENV":"","CRE":"","C/A":""}},{"name":"ANNE GATHONI","scores":{"ENG":"","KISW":"","MATH":"89","ENV":"","CRE":"","C/A":""}},{"name":"ANNE WAMBUI","scores":{"ENG":"","KISW":"","MATH":"89","ENV":"","CRE":"","C/A":""}},{"name":"BENSON KARIUKI","scores":{"ENG":"","KISW":"","MATH":"100","ENV":"","CRE":"","C/A":""}},{"name":"BETH WANJIRU","scores":{"ENG":"","KISW":"","MATH":"87","ENV":"","CRE":"","C/A":""}},{"name":"BRAVIN GACHIE","scores":{"ENG":"","KISW":"","MATH":"67","ENV":"","CRE":"","C/A":""}},{"name":"BRIAN MAINA","scores":{"ENG":"","KISW":"","MATH":"78","ENV":"","CRE":"","C/A":""}},{"name":"CECILIA MUGURE","scores":{"ENG":"","KISW":"","MATH":"89","ENV":"","CRE":"","C/A":""}},{"name":"DAVID MACHARIA","scores":{"ENG":"","KISW":"","MATH":"78","ENV":"","CRE":"","C/A":""}},{"name":"DAVID NGINYO","scores":{"ENG":"","KISW":"","MATH":"67","ENV":"","CRE":"","C/A":""}},{"name":"DORCAS WAMBUI","scores":{"ENG":"","KISW":"","MATH":"67","ENV":"","CRE":"","C/A":""}},{"name":"ELIZABETH WANGARI","scores":{"ENG":"","KISW":"","MATH":"56","ENV":"","CRE":"","C/A":""}},{"name":"EMMANUEL MACHARIA","scores":{"ENG":"","KISW":"","MATH":"90","ENV":"","CRE":"","C/A":""}},{"name":"EMMANUEL MBUGUA","scores":{"ENG":"","KISW":"","MATH":"91","ENV":"","CRE":"","C/A":""}},{"name":"FABIAN GATHAKU","scores":{"ENG":"","KISW":"","MATH":"92","ENV":"","CRE":"","C/A":""}},{"name":"FAVOUR WAMBUI","scores":{"ENG":"","KISW":"","MATH":"93","ENV":"","CRE":"","C/A":""}},{"name":"FRANCIS KIMANI","scores":{"ENG":"","KISW":"","MATH":"94","ENV":"","CRE":"","C/A":""}},{"name":"GEORGE KARANI","scores":{"ENG":"","KISW":"","MATH":"95","ENV":"","CRE":"","C/A":""}},{"name":"HARRISON NJENGA","scores":{"ENG":"","KISW":"","MATH":"96","ENV":"","CRE":"","C/A":""}},{"name":"IRENE WANJIRU","scores":{"ENG":"","KISW":"","MATH":"97","ENV":"","CRE":"","C/A":""}},{"name":"JOHN CHEGE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"JOHN KARANJA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"JOHN NJONGORO","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"JOSEPH NKURUMAH","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"JOY NJAMBI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"JOYLINE WANGARI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"KARL KANJA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"KEAGAN KIRUKU","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"LEVY MWANGI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"LEWIS NJUGUNA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"MARTIN KAROBIA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"MARVEL WAMBUI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"MILKAH WANJIRU","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"OLIVIA ANGEL KIBUGI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"PRINCESS WACHEKE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"ROBERT NJOROGE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"RYAN CHEGE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"SELINA WANJIRU","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"SIMON KINYANJUI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"STEPHEN KAMAU","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"STEPHEN NJOROGE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"TERESIA MUGURE","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"VINCENT KANYORA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"WILSON KASEKWA","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}},{"name":"YVONNE MUTHONI","scores":{"ENG":"","KISW":"","MATH":"","ENV":"","CRE":"","C/A":""}}]}
+{
+ "sision_learners_2_none": [
+  {
+   "name": "ZIPPORAH WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "JANE WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "IAN MWANGI",
+   "gender": "M"
+  },
+  {
+   "name": "ALICIOUS ANGEL",
+   "gender": "F"
+  },
+  {
+   "name": "DANIEL KAMAU",
+   "gender": "M"
+  },
+  {
+   "name": "LEAH NYAMBURA",
+   "gender": "F"
+  },
+  {
+   "name": "LEAH WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "BEAUTRICE WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "SHARON WANJIKU",
+   "gender": "F"
+  },
+  {
+   "name": "MAXWELL MUGURE",
+   "gender": "M"
+  },
+  {
+   "name": "JOSEPH MBUGUA",
+   "gender": "M"
+  },
+  {
+   "name": "SUMMERLOVE MUGURE",
+   "gender": "F"
+  },
+  {
+   "name": "DANSON GACHIE",
+   "gender": "M"
+  },
+  {
+   "name": "DAVIS MUIGAI",
+   "gender": "M"
+  },
+  {
+   "name": "LYAN LEMAYAN",
+   "gender": "M"
+  },
+  {
+   "name": "EUNICE NJERI",
+   "gender": "F"
+  },
+  {
+   "name": "MORGAN GITAU",
+   "gender": "M"
+  },
+  {
+   "name": "JAYDEN MBUGUA",
+   "gender": "M"
+  },
+  {
+   "name": "JAMES NGUGI",
+   "gender": "M"
+  },
+  {
+   "name": "FREDRICK NJENGA",
+   "gender": "M"
+  },
+  {
+   "name": "ESTHER NJOKI",
+   "gender": "F"
+  },
+  {
+   "name": "TRISTER MUTHONI",
+   "gender": "F"
+  },
+  {
+   "name": "SYLVIA WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "PETER MUGO",
+   "gender": "M"
+  },
+  {
+   "name": "BRIAN KURIA",
+   "gender": "M"
+  },
+  {
+   "name": "BETH WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "CARZIUS MWANGI",
+   "gender": "M"
+  },
+  {
+   "name": "AMOS MBUGUA",
+   "gender": "M"
+  },
+  {
+   "name": "RAELYNN WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "EMMANUEL WAWERU",
+   "gender": "M"
+  },
+  {
+   "name": "JOSEPH GATHERU",
+   "gender": "M"
+  },
+  {
+   "name": "SAMUEL KAMAU",
+   "gender": "M"
+  },
+  {
+   "name": "JOHN NGUGI",
+   "gender": "M"
+  },
+  {
+   "name": "NELIAH WAIRIMU",
+   "gender": "F"
+  },
+  {
+   "name": "STACY NJAMBI",
+   "gender": "F"
+  },
+  {
+   "name": "HOPE WANGARI",
+   "gender": "F"
+  },
+  {
+   "name": "JOSEPH NG'ANG'A",
+   "gender": "M"
+  },
+  {
+   "name": "SALOME NDUTA",
+   "gender": "F"
+  },
+  {
+   "name": "MARGARET WANJAI",
+   "gender": "F"
+  },
+  {
+   "name": "JOSSAN NJOROGE",
+   "gender": "F"
+  },
+  {
+   "name": "EMMACULATE GATHONI",
+   "gender": "F"
+  },
+  {
+   "name": "PETER GICHU",
+   "gender": "M"
+  },
+  {
+   "name": "ANN WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "PRINCESS WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "PATRICK CHEGE",
+   "gender": "M"
+  },
+  {
+   "name": "TANIA MUTHONI",
+   "gender": "F"
+  },
+  {
+   "name": "STEPHEN GITHINJI",
+   "gender": "M"
+  },
+  {
+   "name": "IBRAHIM KAHURA",
+   "gender": "M"
+  },
+  {
+   "name": "PETER KIMANI",
+   "gender": "M"
+  },
+  {
+   "name": "DAVID CHEGE",
+   "gender": "M"
+  },
+  {
+   "name": "DAVID THUKU",
+   "gender": "M"
+  },
+  {
+   "name": "MIRIAM WANJIKU",
+   "gender": "F"
+  },
+  {
+   "name": "PURITY MUMBI",
+   "gender": "F"
+  }
+ ],
+ "sision_learners_6_East": [
+  {
+   "name": "ANNE WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "LAZARUS NJOROGE",
+   "gender": "M"
+  },
+  {
+   "name": "BLESSINGS WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "JOYLEEN MUTHONI",
+   "gender": "F"
+  },
+  {
+   "name": "ASHLEY WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "JAYVINE MWANGI",
+   "gender": "M"
+  },
+  {
+   "name": "JOSEPH NDUNGU",
+   "gender": "M"
+  },
+  {
+   "name": "MARYANNE WATIRI",
+   "gender": "F"
+  },
+  {
+   "name": "EVAN KIMANI",
+   "gender": "M"
+  },
+  {
+   "name": "JOHN NJOROGE",
+   "gender": "M"
+  },
+  {
+   "name": "JOHN GITAU",
+   "gender": "M"
+  },
+  {
+   "name": "MARGARET NJOKI",
+   "gender": "F"
+  },
+  {
+   "name": "EUNICE WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "JOHN KIMANI",
+   "gender": "M"
+  },
+  {
+   "name": "IMMANUEL EDVINE",
+   "gender": "M"
+  },
+  {
+   "name": "MITCHELLE WANJIKU K.",
+   "gender": "F"
+  },
+  {
+   "name": "JOSEPH MUCHERU",
+   "gender": "M"
+  },
+  {
+   "name": "BETHA NJERI",
+   "gender": "F"
+  },
+  {
+   "name": "MICHAEL KINYANJUI",
+   "gender": "M"
+  },
+  {
+   "name": "ESTHER MUMBI",
+   "gender": "F"
+  },
+  {
+   "name": "SAMUEL NJUGUNA",
+   "gender": "M"
+  },
+  {
+   "name": "SUSAN WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "MARGARET NJERI",
+   "gender": "F"
+  },
+  {
+   "name": "RUTH WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "JOHN KINYANJUI",
+   "gender": "M"
+  },
+  {
+   "name": "BLESS GITAU",
+   "gender": "M"
+  },
+  {
+   "name": "PETER MBUGUA",
+   "gender": "M"
+  },
+  {
+   "name": "JOSEPH WACHIRA",
+   "gender": "M"
+  },
+  {
+   "name": "LUKE KIMUNYI",
+   "gender": "M"
+  },
+  {
+   "name": "JOHN MAINA",
+   "gender": "M"
+  },
+  {
+   "name": "JANE WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "PAULINE NYAMBURA",
+   "gender": "F"
+  },
+  {
+   "name": "ELIZABETH NJOKI",
+   "gender": "F"
+  },
+  {
+   "name": "FRANCIS KAMAU",
+   "gender": "M"
+  },
+  {
+   "name": "SHARLEEN WANJIKU",
+   "gender": "F"
+  },
+  {
+   "name": "DANIEL KANG'ETHE",
+   "gender": "M"
+  },
+  {
+   "name": "BENSON NGUGI",
+   "gender": "M"
+  },
+  {
+   "name": "VICTOR NDUNGU",
+   "gender": "M"
+  },
+  {
+   "name": "RUTH RUGURU",
+   "gender": "F"
+  },
+  {
+   "name": "PETER NJUGUNA",
+   "gender": "M"
+  },
+  {
+   "name": "JOSEPH KIHARA",
+   "gender": "M"
+  }
+ ],
+ "sision_learners_6_West": [
+  {
+   "name": "IAN CHEGE",
+   "gender": "M"
+  },
+  {
+   "name": "PRECIOUS WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "JOY WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "CAROLINE MUMBI",
+   "gender": "F"
+  },
+  {
+   "name": "STEPHEN NJOROGE",
+   "gender": "M"
+  },
+  {
+   "name": "MARY WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "MARY NJERI",
+   "gender": "F"
+  },
+  {
+   "name": "VINCE KAMAU",
+   "gender": "M"
+  },
+  {
+   "name": "ZIPPORAH WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "DANIEL MWANGI",
+   "gender": "M"
+  },
+  {
+   "name": "TABITHA MURINGI",
+   "gender": "F"
+  },
+  {
+   "name": "ALEX KOIGI",
+   "gender": "M"
+  },
+  {
+   "name": "SAMUEL MWANGI",
+   "gender": "M"
+  },
+  {
+   "name": "PAUL KIMANI",
+   "gender": "M"
+  },
+  {
+   "name": "ELVIS KINYANJUI",
+   "gender": "M"
+  },
+  {
+   "name": "TERRY NDUTA",
+   "gender": "M"
+  },
+  {
+   "name": "JOSEPH MBUGUA",
+   "gender": "M"
+  },
+  {
+   "name": "SAMUEL CHACHA",
+   "gender": "M"
+  },
+  {
+   "name": "MERCY NJERI",
+   "gender": "F"
+  },
+  {
+   "name": "PETER KIMANI",
+   "gender": "M"
+  },
+  {
+   "name": "MITCHELL WANJIKU",
+   "gender": "F"
+  },
+  {
+   "name": "FAITH WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "MARY WAITHONI",
+   "gender": "F"
+  },
+  {
+   "name": "HILDAH WAITHIRA",
+   "gender": "F"
+  },
+  {
+   "name": "GRACE WAITHIRA",
+   "gender": "F"
+  },
+  {
+   "name": "PAUL KAMAU",
+   "gender": "M"
+  },
+  {
+   "name": "VICTOR KABERI",
+   "gender": "M"
+  },
+  {
+   "name": "SAMUEL MUTURI",
+   "gender": "M"
+  },
+  {
+   "name": "SUSAN NJAMBI",
+   "gender": "F"
+  },
+  {
+   "name": "JAMES BIARU",
+   "gender": "M"
+  },
+  {
+   "name": "ROSE WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "NATHANIEL KIMUTHU",
+   "gender": "M"
+  },
+  {
+   "name": "DAVID MACHARIA",
+   "gender": "M"
+  },
+  {
+   "name": "STEPHEN NDUNGU",
+   "gender": "M"
+  },
+  {
+   "name": "JOHN CHEGE",
+   "gender": "M"
+  },
+  {
+   "name": "ARMSTRONG MUNIU",
+   "gender": "M"
+  },
+  {
+   "name": "NANCY MWIHAKI",
+   "gender": "F"
+  },
+  {
+   "name": "BRIAN NDIRANGU",
+   "gender": "M"
+  },
+  {
+   "name": "PAUL KAGURU",
+   "gender": "M"
+  },
+  {
+   "name": "GLADYS WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "VINCENT MAINA",
+   "gender": "M"
+  },
+  {
+   "name": "STEPHEN GITHAIGA",
+   "gender": "M"
+  },
+  {
+   "name": "BRIAN GICHEHA",
+   "gender": "M"
+  },
+  {
+   "name": "MARY NYAMBURA",
+   "gender": "F"
+  }
+ ],
+ "sision_learners_1_none": [
+  {
+   "name": "MARTIN KAROBIA",
+   "gender": "M"
+  },
+  {
+   "name": "ANGELA NYAGUTHII",
+   "gender": "F"
+  },
+  {
+   "name": "ALOICE MBURU",
+   "gender": "M"
+  },
+  {
+   "name": "JOY NJAMBI",
+   "gender": "F"
+  },
+  {
+   "name": "MARVEL WAMBUI",
+   "gender": "M"
+  },
+  {
+   "name": "KARL KANJA",
+   "gender": "M"
+  },
+  {
+   "name": "JOYLINE WANGARI",
+   "gender": "F"
+  },
+  {
+   "name": "CECILIA MUGURE",
+   "gender": "F"
+  },
+  {
+   "name": "FAVOUR WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "AMELIA NJERI",
+   "gender": "F"
+  },
+  {
+   "name": "SELINA WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "PRINCESS WACHEKE",
+   "gender": "F"
+  },
+  {
+   "name": "DAVID NGINYO",
+   "gender": "M"
+  },
+  {
+   "name": "IRENE WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "TERESIA MUGURE",
+   "gender": "F"
+  },
+  {
+   "name": "BRAVIN GACHIE",
+   "gender": "M"
+  },
+  {
+   "name": "GEORGE KARANI",
+   "gender": "M"
+  },
+  {
+   "name": "EMMANUEL MBUGUA",
+   "gender": "M"
+  },
+  {
+   "name": "ANNE GATHONI",
+   "gender": "F"
+  },
+  {
+   "name": "HARRISON NJENGA",
+   "gender": "M"
+  },
+  {
+   "name": "KEAGAN KIRUKU",
+   "gender": "M"
+  },
+  {
+   "name": "LEVY MWANGI",
+   "gender": "M"
+  },
+  {
+   "name": "JOSEPH NKURUMAH",
+   "gender": "M"
+  },
+  {
+   "name": "DORCAS WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "DAVID MACHARIA",
+   "gender": "M"
+  },
+  {
+   "name": "BENSON KARIUKI",
+   "gender": "M"
+  },
+  {
+   "name": "JOHN NJONGORO",
+   "gender": "M"
+  },
+  {
+   "name": "YVONNE MUTHONI",
+   "gender": "F"
+  },
+  {
+   "name": "ELIZABETH WANGARI",
+   "gender": "F"
+  },
+  {
+   "name": "MILKAH WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "JOHN KARANJA",
+   "gender": "M"
+  },
+  {
+   "name": "EMMANUEL MACHARIA",
+   "gender": "M"
+  },
+  {
+   "name": "JOHN CHEGE",
+   "gender": "M"
+  },
+  {
+   "name": "OLIVIA ANGEL KIBUGI",
+   "gender": "F"
+  },
+  {
+   "name": "RYAN CHEGE",
+   "gender": "M"
+  },
+  {
+   "name": "SIMON KINYANJUI",
+   "gender": "M"
+  },
+  {
+   "name": "FRANCIS KIMANI",
+   "gender": "M"
+  },
+  {
+   "name": "LEWIS NJUGUNA",
+   "gender": "M"
+  },
+  {
+   "name": "BRIAN MAINA",
+   "gender": "M"
+  },
+  {
+   "name": "ANNE WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "STEPHEN KAMAU",
+   "gender": "M"
+  },
+  {
+   "name": "ROBERT NJOROGE",
+   "gender": "M"
+  },
+  {
+   "name": "VINCENT KANYORA",
+   "gender": "M"
+  },
+  {
+   "name": "ANN WACERA",
+   "gender": "F"
+  },
+  {
+   "name": "BETH WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "WILSON KASEKWA",
+   "gender": "M"
+  },
+  {
+   "name": "STEPHEN NJOROGE",
+   "gender": "M"
+  },
+  {
+   "name": "FABIAN GATHAKU",
+   "gender": "M"
+  }
+ ],
+ "sision_learners_3_none": [
+  {
+   "name": "SHANTEL NJERI",
+   "gender": "F"
+  },
+  {
+   "name": "LUSET WAITHERA",
+   "gender": "F"
+  },
+  {
+   "name": "ELIZABETH WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "BLESSING WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "ROSEBANCY WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "GEORGE NGUGI",
+   "gender": "M"
+  },
+  {
+   "name": "JOHN MUNGAI",
+   "gender": "M"
+  },
+  {
+   "name": "NICKSON NGUGI",
+   "gender": "M"
+  },
+  {
+   "name": "GEORGE NDUATI",
+   "gender": "M"
+  },
+  {
+   "name": "JOSEPH MWANGI",
+   "gender": "M"
+  },
+  {
+   "name": "RUTH WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "JOHN KIMANI",
+   "gender": "M"
+  },
+  {
+   "name": "ROBERT MUNGAI",
+   "gender": "M"
+  },
+  {
+   "name": "LOISE WAITHERA",
+   "gender": "F"
+  },
+  {
+   "name": "MALCOM KARANJA",
+   "gender": "M"
+  },
+  {
+   "name": "ETANA WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "ELIZABETH WANJIKU",
+   "gender": "F"
+  },
+  {
+   "name": "JOYCE WACUKA",
+   "gender": "F"
+  },
+  {
+   "name": "JEMIMAH WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "FRANCIS NJENGA",
+   "gender": "M"
+  },
+  {
+   "name": "CARSON MAKUMI",
+   "gender": "M"
+  },
+  {
+   "name": "LEWIS MWANGI",
+   "gender": "M"
+  },
+  {
+   "name": "BETH WANJIKU",
+   "gender": "F"
+  },
+  {
+   "name": "JOSPHINE WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "JOAN NJERI",
+   "gender": "F"
+  },
+  {
+   "name": "JIAN KIMANI",
+   "gender": "M"
+  },
+  {
+   "name": "STEPHEN THIONGO",
+   "gender": "M"
+  },
+  {
+   "name": "JOSEPH IGUANYA",
+   "gender": "M"
+  },
+  {
+   "name": "SAMUEL NJOROGE",
+   "gender": "M"
+  },
+  {
+   "name": "WINROSE WANGARI",
+   "gender": "F"
+  },
+  {
+   "name": "EVALYNE WAIRIMU",
+   "gender": "F"
+  },
+  {
+   "name": "TABITHA MURINGE",
+   "gender": "F"
+  },
+  {
+   "name": "CECILIA MUGURE",
+   "gender": "F"
+  },
+  {
+   "name": "MIRRIAM WANJIKU",
+   "gender": "F"
+  },
+  {
+   "name": "GLADYS WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "SHANTEL NYAMBURA",
+   "gender": "F"
+  },
+  {
+   "name": "JOSEPH NJUGUNA",
+   "gender": "M"
+  },
+  {
+   "name": "ELIZABETH RUGURU",
+   "gender": "F"
+  },
+  {
+   "name": "JOSHUA KIARIE",
+   "gender": "M"
+  },
+  {
+   "name": "MARY WAITHERA",
+   "gender": "F"
+  },
+  {
+   "name": "CORNELIUS KIAMA",
+   "gender": "M"
+  },
+  {
+   "name": "TERESIAH WANJIKU",
+   "gender": "F"
+  },
+  {
+   "name": "JAMES KIMANI",
+   "gender": "M"
+  },
+  {
+   "name": "LYAN WAMBUGU",
+   "gender": "M"
+  },
+  {
+   "name": "JOSEPH GACUNGA",
+   "gender": "M"
+  },
+  {
+   "name": "LAWRENCE NJENGA",
+   "gender": "M"
+  },
+  {
+   "name": "BENSON KARIUKI",
+   "gender": "M"
+  },
+  {
+   "name": "SAMUEL WAINAINA",
+   "gender": "M"
+  },
+  {
+   "name": "MOSES MWANGI",
+   "gender": "M"
+  },
+  {
+   "name": "MICHAEL IHUGO",
+   "gender": "M"
+  },
+  {
+   "name": "PATRICK CHEGE",
+   "gender": "M"
+  },
+  {
+   "name": "MINNE MUTHONI",
+   "gender": "F"
+  },
+  {
+   "name": "JAMES KUNGU",
+   "gender": "M"
+  },
+  {
+   "name": "FRANCIS MWAURA",
+   "gender": "M"
+  },
+  {
+   "name": "DANIEL GICHOHI",
+   "gender": "M"
+  },
+  {
+   "name": "HANNAH WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "JOSEPH NJOROGE",
+   "gender": "M"
+  },
+  {
+   "name": "JOHN GACHUIRI",
+   "gender": "M"
+  }
+ ],
+ "sision_learners_4_none": [
+  {
+   "name": "EUNICE NDUNGU",
+   "gender": "F"
+  },
+  {
+   "name": "MONICA WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "CONSTANT YANIS",
+   "gender": "M"
+  },
+  {
+   "name": "MARVEL MBUGUA",
+   "gender": "M"
+  },
+  {
+   "name": "PETER KIMANI",
+   "gender": "M"
+  },
+  {
+   "name": "PAUL CHEGE",
+   "gender": "M"
+  },
+  {
+   "name": "DANSON GACHIE",
+   "gender": "M"
+  },
+  {
+   "name": "BLESSED MBUGUA",
+   "gender": "M"
+  },
+  {
+   "name": "ANTONY KABIRU",
+   "gender": "M"
+  },
+  {
+   "name": "CHRISTABEL WANGARI",
+   "gender": "F"
+  },
+  {
+   "name": "TANYA WACUKA",
+   "gender": "F"
+  },
+  {
+   "name": "GRACE WAIRIMU",
+   "gender": "F"
+  },
+  {
+   "name": "CLAIRE WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "JAMES GITHINJI",
+   "gender": "M"
+  },
+  {
+   "name": "RAHAB GATHONI",
+   "gender": "F"
+  },
+  {
+   "name": "EMMANUEL MWAURA",
+   "gender": "M"
+  },
+  {
+   "name": "VINCENT NJENGA",
+   "gender": "M"
+  },
+  {
+   "name": "DAVID MUNGAI",
+   "gender": "M"
+  },
+  {
+   "name": "BRIAN NJOROGE",
+   "gender": "M"
+  },
+  {
+   "name": "PROMISE MAINA",
+   "gender": "M"
+  },
+  {
+   "name": "MICHAEL NJENGA",
+   "gender": "M"
+  },
+  {
+   "name": "FAITH WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "BENARD MUIGAI",
+   "gender": "M"
+  },
+  {
+   "name": "CYTHIA WAIRIMU",
+   "gender": "F"
+  },
+  {
+   "name": "MARY WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "MARGARET NYOKABI",
+   "gender": "F"
+  },
+  {
+   "name": "JAMES KARANJA",
+   "gender": "M"
+  },
+  {
+   "name": "CELESTINE KERUBO",
+   "gender": "F"
+  },
+  {
+   "name": "JOY WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "VIOLET BORE",
+   "gender": "F"
+  },
+  {
+   "name": "MARGARET WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "JOSEPH GACHINGA",
+   "gender": "M"
+  },
+  {
+   "name": "MARIA WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "CHRISTINE WAIRIMU",
+   "gender": "F"
+  },
+  {
+   "name": "LEWIS WAWERU",
+   "gender": "M"
+  },
+  {
+   "name": "FLORENCE NYOKABI",
+   "gender": "F"
+  },
+  {
+   "name": "ALEX WAINAINA",
+   "gender": "M"
+  },
+  {
+   "name": "SHEITON KIARIE",
+   "gender": "M"
+  },
+  {
+   "name": "MIRIAM WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "RUTH NYAMBURA",
+   "gender": "F"
+  },
+  {
+   "name": "PATRICIA NJERI",
+   "gender": "F"
+  },
+  {
+   "name": "JAMES NJOROGE",
+   "gender": "M"
+  },
+  {
+   "name": "PRECIOUS NYAWIRA",
+   "gender": "F"
+  },
+  {
+   "name": "IAN KAIRU",
+   "gender": "M"
+  },
+  {
+   "name": "PENINAH MUMBI",
+   "gender": "F"
+  },
+  {
+   "name": "NAOMI WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "NATALIE NYOKABI",
+   "gender": "F"
+  },
+  {
+   "name": "WILFRED MBUGUA",
+   "gender": "M"
+  },
+  {
+   "name": "JECINTA WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "GEORGE GITAKA",
+   "gender": "M"
+  },
+  {
+   "name": "GRACE NJERI",
+   "gender": "F"
+  },
+  {
+   "name": "CHARITY WANJIKU",
+   "gender": "F"
+  },
+  {
+   "name": "LEE MWANGI",
+   "gender": "M"
+  },
+  {
+   "name": "JOSEPH NDUNGU",
+   "gender": "M"
+  },
+  {
+   "name": "WILLIAM KUNGU",
+   "gender": "M"
+  },
+  {
+   "name": "GODFREY NJUGE",
+   "gender": "M"
+  },
+  {
+   "name": "GRACE WANJIKU",
+   "gender": "F"
+  },
+  {
+   "name": "JOHN NDIRANGU",
+   "gender": "M"
+  },
+  {
+   "name": "AGNES WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "FRANCIS NJOROGE",
+   "gender": "M"
+  },
+  {
+   "name": "DANIEL KIBE",
+   "gender": "M"
+  },
+  {
+   "name": "ANNE NJERI",
+   "gender": "F"
+  },
+  {
+   "name": "AGNES WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "CHARLES KAMAU",
+   "gender": "M"
+  },
+  {
+   "name": "MARGARET WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "LUCY WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "JOSEPH MBATIA",
+   "gender": "M"
+  }
+ ],
+ "sision_learners_5_none": [
+  {
+   "name": "MARGARET WANJIKU N",
+   "gender": "F"
+  },
+  {
+   "name": "IBRA WAWERU",
+   "gender": "M"
+  },
+  {
+   "name": "JANICE NYATHIRA",
+   "gender": "F"
+  },
+  {
+   "name": "RYAN KIMANI",
+   "gender": "M"
+  },
+  {
+   "name": "ALICE NERI W",
+   "gender": "F"
+  },
+  {
+   "name": "MARGARET WANGUI",
+   "gender": "F"
+  },
+  {
+   "name": "HANNAH WANJIRU",
+   "gender": "F"
+  },
+  {
+   "name": "SERAH WANJIKU",
+   "gender": "F"
+  },
+  {
+   "name": "LUCY MUTHAKI",
+   "gender": "F"
+  },
+  {
+   "name": "SAMUEL NERI",
+   "gender": "M"
+  },
+  {
+   "name": "JOHNSON KAHATO",
+   "gender": "M"
+  },
+  {
+   "name": "TABITHA GITAU",
+   "gender": "F"
+  },
+  {
+   "name": "LEWIS WANJIKU",
+   "gender": "M"
+  },
+  {
+   "name": "PETER NJENGA",
+   "gender": "M"
+  },
+  {
+   "name": "MOSES KARANJA",
+   "gender": "M"
+  },
+  {
+   "name": "MERCY MBURU",
+   "gender": "F"
+  },
+  {
+   "name": "ALICE WANJIKU W",
+   "gender": "F"
+  },
+  {
+   "name": "FIDELIS NERI",
+   "gender": "M"
+  },
+  {
+   "name": "PRECIOUS WANJIKU",
+   "gender": "F"
+  },
+  {
+   "name": "JAYDEN NYAMBURA",
+   "gender": "M"
+  },
+  {
+   "name": "BRANDON BAHATI",
+   "gender": "M"
+  },
+  {
+   "name": "TABITHA MWANGI",
+   "gender": "F"
+  },
+  {
+   "name": "ISAAC NERI",
+   "gender": "M"
+  },
+  {
+   "name": "MERCY MURURI",
+   "gender": "F"
+  },
+  {
+   "name": "EUGENE WANJIKU",
+   "gender": "M"
+  },
+  {
+   "name": "PURITY NJENGA",
+   "gender": "F"
+  },
+  {
+   "name": "ISAAC WANJIKU",
+   "gender": "M"
+  },
+  {
+   "name": "NANCY GICHAGI",
+   "gender": "F"
+  },
+  {
+   "name": "FRANCIS WANJIRU",
+   "gender": "M"
+  },
+  {
+   "name": "ASUMPTA NGITHUA",
+   "gender": "F"
+  },
+  {
+   "name": "ALICE WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "FIDAH WATATI",
+   "gender": "F"
+  },
+  {
+   "name": "BLESSING KAWETO",
+   "gender": "F"
+  },
+  {
+   "name": "LEWIS NERI",
+   "gender": "M"
+  },
+  {
+   "name": "MARGARET MACHARIA",
+   "gender": "F"
+  },
+  {
+   "name": "ZACHARIAH NJUGUNA",
+   "gender": "M"
+  },
+  {
+   "name": "SHANIZE WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "PETER MBAUNI",
+   "gender": "M"
+  },
+  {
+   "name": "JOYCE WAIRIMU",
+   "gender": "F"
+  },
+  {
+   "name": "LEWIS NJOGU",
+   "gender": "M"
+  },
+  {
+   "name": "NICK KIMANI",
+   "gender": "M"
+  },
+  {
+   "name": "JOHN GATIMU",
+   "gender": "M"
+  },
+  {
+   "name": "MARY MERI",
+   "gender": "F"
+  },
+  {
+   "name": "PETER MUGO",
+   "gender": "M"
+  },
+  {
+   "name": "VERONICAH MUKUHI",
+   "gender": "F"
+  },
+  {
+   "name": "GRACE WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "ROSEMARY NJOKI",
+   "gender": "F"
+  },
+  {
+   "name": "ALICE WANJIRA",
+   "gender": "F"
+  },
+  {
+   "name": "IMMACULATE MERI",
+   "gender": "F"
+  },
+  {
+   "name": "GERALD MUHIA",
+   "gender": "M"
+  },
+  {
+   "name": "LYDIA WAMARITHA",
+   "gender": "F"
+  },
+  {
+   "name": "MILIANT WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "JANE WAMBUI",
+   "gender": "F"
+  },
+  {
+   "name": "GEOFFREY NDIRANGU",
+   "gender": "M"
+  },
+  {
+   "name": "ISAAC MUORIA",
+   "gender": "M"
+  },
+  {
+   "name": "JANE WATHERA",
+   "gender": "F"
+  },
+  {
+   "name": "JEREMIAH NGANGLA",
+   "gender": "M"
+  },
+  {
+   "name": "IAN NGANGLA",
+   "gender": "M"
+  },
+  {
+   "name": "STEPHEN MBUTHIA",
+   "gender": "M"
+  },
+  {
+   "name": "JAMES MAINA",
+   "gender": "M"
+  }
+ ],
+ "gradingSystemOverride": [
+  {
+   "sub": "EE",
+   "level": "EE",
+   "min": 76,
+   "max": 100,
+   "points": 4,
+   "band": "Exceeding Expectations",
+   "remark": "Exceptional mastery; exceeds expectations"
+  },
+  {
+   "sub": "ME",
+   "level": "ME",
+   "min": 51,
+   "max": 75,
+   "points": 3,
+   "band": "Meeting Expectations",
+   "remark": "Solid understanding"
+  },
+  {
+   "sub": "AE",
+   "level": "AE",
+   "min": 26,
+   "max": 50,
+   "points": 2,
+   "band": "Approaching Expectations",
+   "remark": "Developing understanding"
+  },
+  {
+   "sub": "BE",
+   "level": "BE",
+   "min": 0,
+   "max": 25,
+   "points": 1,
+   "band": "Below Expectations",
+   "remark": "Needs support"
+  }
+ ],
+ "sision_scores_1_none_End_Term_2_2026": [
+  {
+   "name": "ALOICE MBURU",
+   "scores": {
+    "ENG": "2",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "AMELIA NJERI",
+   "scores": {
+    "ENG": "63",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "ANGELA NYAGUTHII",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "ANN WACERA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "ANNE GATHONI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "ANNE WAMBUI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "BENSON KARIUKI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "BETH WANJIRU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "BRAVIN GACHIE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "BRIAN MAINA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "CECILIA MUGURE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "DAVID MACHARIA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "DAVID NGINYO",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "DORCAS WAMBUI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "ELIZABETH WANGARI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "EMMANUEL MACHARIA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "EMMANUEL MBUGUA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "FABIAN GATHAKU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "FAVOUR WAMBUI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "FRANCIS KIMANI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "GEORGE KARANI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "HARRISON NJENGA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "IRENE WANJIRU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "JOHN CHEGE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "JOHN KARANJA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "JOHN NJONGORO",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "JOSEPH NKURUMAH",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "JOY NJAMBI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "JOYLINE WANGARI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "KARL KANJA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "KEAGAN KIRUKU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "LEVY MWANGI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "LEWIS NJUGUNA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "MARTIN KAROBIA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "MARVEL WAMBUI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "MILKAH WANJIRU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "OLIVIA ANGEL KIBUGI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "PRINCESS WACHEKE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "ROBERT NJOROGE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "RYAN CHEGE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "SELINA WANJIRU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "SIMON KINYANJUI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "STEPHEN KAMAU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "STEPHEN NJOROGE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "TERESIA MUGURE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "VINCENT KANYORA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "WILSON KASEKWA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "YVONNE MUTHONI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  }
+ ],
+ "userOverrides": {
+  "grade1": {
+   "name": "Mr Martin"
+  },
+  "grade2": {
+   "name": "Md Monica"
+  },
+  "grade3": {
+   "name": "Md Stella wagana"
+  },
+  "grade4": {
+   "name": "Md Stella Kanja"
+  },
+  "grade5": {
+   "name": "Md Ann karanja"
+  },
+  "grade6east": {
+   "name": "Md Cecilia"
+  },
+  "grade6west": {
+   "name": "Md Jecinta"
+  },
+  "maths": {
+   "name": "Subject Teacher (ed"
+  }
+ },
+ "sision_scores_1_none_Mid_Term_2_2026": [
+  {
+   "name": "ALOICE MBURU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "33",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "AMELIA NJERI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "78",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "ANGELA NYAGUTHII",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "90",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "ANN WACERA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "78",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "ANNE GATHONI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "89",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "ANNE WAMBUI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "89",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "BENSON KARIUKI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "100",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "BETH WANJIRU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "87",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "BRAVIN GACHIE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "67",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "BRIAN MAINA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "78",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "CECILIA MUGURE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "89",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "DAVID MACHARIA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "78",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "DAVID NGINYO",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "67",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "DORCAS WAMBUI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "67",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "ELIZABETH WANGARI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "56",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "EMMANUEL MACHARIA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "90",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "EMMANUEL MBUGUA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "91",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "FABIAN GATHAKU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "92",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "FAVOUR WAMBUI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "93",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "FRANCIS KIMANI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "94",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "GEORGE KARANI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "95",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "HARRISON NJENGA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "96",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "IRENE WANJIRU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "97",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "JOHN CHEGE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "JOHN KARANJA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "JOHN NJONGORO",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "JOSEPH NKURUMAH",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "JOY NJAMBI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "JOYLINE WANGARI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "KARL KANJA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "KEAGAN KIRUKU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "LEVY MWANGI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "LEWIS NJUGUNA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "MARTIN KAROBIA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "MARVEL WAMBUI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "MILKAH WANJIRU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "OLIVIA ANGEL KIBUGI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "PRINCESS WACHEKE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "ROBERT NJOROGE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "RYAN CHEGE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "SELINA WANJIRU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "SIMON KINYANJUI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "STEPHEN KAMAU",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "STEPHEN NJOROGE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "TERESIA MUGURE",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "VINCENT KANYORA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "WILSON KASEKWA",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  },
+  {
+   "name": "YVONNE MUTHONI",
+   "scores": {
+    "ENG": "",
+    "KISW": "",
+    "MATH": "",
+    "ENV": "",
+    "CRE": "",
+    "C/A": ""
+   }
+  }
+ ]
+}
