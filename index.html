@@ -1267,54 +1267,12 @@ function calcSubjectRanks(combinedList) {
 
 // ─── INITIAL LEARNER DATA ─────────────────────────────────────────────────────
 const INITIAL_LEARNERS = {
-  "1": { "": [] },
-  "2": { "": [
-    {name:"ZIPPORAH WANJIRU"},{name:"JANE WANGUI"},{name:"IAN MWANGI"},{name:"ALICIOUS ANGEL"},
-    {name:"DANIEL KAMAU"},{name:"LEAH NYAMBURA"},{name:"LEAH WANJIRU"},{name:"BEAUTRICE WANJIRU"},
-    {name:"SHARON WANJIKU"},{name:"MAXWELL MUGURE"},{name:"JOSEPH MBUGUA"},{name:"SUMMERLOVE MUGURE"},
-    {name:"DANSON GACHIE"},{name:"DAVIS MUIGAI"},{name:"LYAN LEMAYAN"},{name:"EUNICE NJERI"},
-    {name:"MORGAN GITAU"},{name:"JAYDEN MBUGUA"},{name:"JAMES NGUGI"},{name:"FREDRICK NJENGA"},
-    {name:"ESTHER NJOKI"},{name:"TRISTER MUTHONI"},{name:"SYLVIA WAMBUI"},{name:"PETER MUGO"},
-    {name:"BRIAN KURIA"},{name:"BETH WANJIRU"},{name:"CARZIUS MWANGI"},{name:"AMOS MBUGUA"},
-    {name:"RAELYNN WANJIRU"},{name:"EMMANUEL WAWERU"},{name:"JOSEPH GATHERU"},{name:"SAMUEL KAMAU"},
-    {name:"JOHN NGUGI"},{name:"NELIAH WAIRIMU"},{name:"STACY NJAMBI"},{name:"HOPE WANGARI"},
-    {name:"JOSEPH NG'ANG'A"},{name:"SALOME NDUTA"},{name:"MARGARET WANJAI"},{name:"JOSSAN NJOROGE"},
-    {name:"EMMACULATE GATHONI"},{name:"PETER GICHU"},{name:"ANN WANGUI"},{name:"PRINCESS WANJIRU"},
-    {name:"PATRICK CHEGE"},{name:"TANIA MUTHONI"},{name:"STEPHEN GITHINJI"},{name:"IBRAHIM KAHURA"},
-    {name:"PETER KIMANI"},{name:"DAVID CHEGE"},{name:"DAVID THUKU"},{name:"MIRIAM WANJIKU"},
-    {name:"PURITY MUMBI"},
-  ]},
-  "3": { "": [] },
-  "4": { "": [] },
-  "5": { "": [] },
-  "6": {
-    "East": [
-      {name:"ANNE WANJIRU"},{name:"LAZARUS NJOROGE"},{name:"BLESSINGS WAMBUI"},{name:"JOYLEEN MUTHONI"},
-      {name:"ASHLEY WAMBUI"},{name:"JAYVINE MWANGI"},{name:"JOSEPH NDUNGU"},{name:"MARYANNE WATIRI"},
-      {name:"EVAN KIMANI"},{name:"JOHN NJOROGE"},{name:"JOHN GITAU"},{name:"MARGARET NJOKI"},
-      {name:"EUNICE WAMBUI"},{name:"JOHN KIMANI"},{name:"IMMANUEL EDVINE"},{name:"MITCHELLE WANJIKU K."},
-      {name:"JOSEPH MUCHERU"},{name:"BETHA NJERI"},{name:"MICHAEL KINYANJUI"},{name:"ESTHER MUMBI"},
-      {name:"SAMUEL NJUGUNA"},{name:"SUSAN WANGUI"},{name:"MARGARET NJERI"},{name:"RUTH WANJIRU"},
-      {name:"JOHN KINYANJUI"},{name:"BLESS GITAU"},{name:"PETER MBUGUA"},{name:"JOSEPH WACHIRA"},
-      {name:"LUKE KIMUNYI"},{name:"JOHN MAINA"},{name:"JANE WANJIRU"},{name:"PAULINE NYAMBURA"},
-      {name:"ELIZABETH NJOKI"},{name:"FRANCIS KAMAU"},{name:"SHARLEEN WANJIKU"},{name:"DANIEL KANG'ETHE"},
-      {name:"BENSON NGUGI"},{name:"VICTOR NDUNGU"},{name:"RUTH RUGURU"},{name:"PETER NJUGUNA"},
-      {name:"JOSEPH KIHARA"},
-    ],
-    "West": [
-      {name:"IAN CHEGE"},{name:"PRECIOUS WANGUI"},{name:"JOY WANGUI"},{name:"CAROLINE MUMBI"},
-      {name:"STEPHEN NJOROGE"},{name:"MARY WANGUI"},{name:"MARY NJERI"},{name:"VINCE KAMAU"},
-      {name:"ZIPPORAH WANJIRU"},{name:"DANIEL MWANGI"},{name:"TABITHA MURINGI"},{name:"ALEX KOIGI"},
-      {name:"SAMUEL MWANGI"},{name:"PAUL KIMANI"},{name:"ELVIS KINYANJUI"},{name:"TERRY NDUTA"},
-      {name:"JOSEPH MBUGUA"},{name:"SAMUEL CHACHA"},{name:"MERCY NJERI"},{name:"PETER KIMANI"},
-      {name:"MITCHELL WANJIKU"},{name:"FAITH WANGUI"},{name:"MARY WAITHONI"},{name:"HILDAH WAITHIRA"},
-      {name:"GRACE WAITHIRA"},{name:"PAUL KAMAU"},{name:"VICTOR KABERI"},{name:"SAMUEL MUTURI"},
-      {name:"SUSAN NJAMBI"},{name:"JAMES BIARU"},{name:"ROSE WAMBUI"},{name:"NATHANIEL KIMUTHU"},
-      {name:"DAVID MACHARIA"},{name:"STEPHEN NDUNGU"},{name:"JOHN CHEGE"},{name:"ARMSTRONG MUNIU"},
-      {name:"NANCY MWIHAKI"},{name:"BRIAN NDIRANGU"},{name:"PAUL KAGURU"},{name:"GLADYS WAMBUI"},
-      {name:"VINCENT MAINA"},{name:"STEPHEN GITHAIGA"},{name:"BRIAN GICHEHA"},{name:"MARY NYAMBURA"},
-    ]
-  }
+  "1": { "": [{name:"MARTIN KAROBIA",gender:"M"},{name:"ANGELA NYAGUTHII",gender:"F"},{name:"ALOICE MBURU",gender:"M"},{name:"JOY NJAMBI",gender:"F"},{name:"MARVEL WAMBUI",gender:"M"},{name:"KARL KANJA",gender:"M"},{name:"JOYLINE WANGARI",gender:"F"},{name:"CECILIA MUGURE",gender:"F"},{name:"FAVOUR WAMBUI",gender:"F"},{name:"AMELIA NJERI",gender:"F"},{name:"SELINA WANJIRU",gender:"F"},{name:"PRINCESS WACHEKE",gender:"F"},{name:"DAVID NGINYO",gender:"M"},{name:"IRENE WANJIRU",gender:"F"},{name:"TERESIA MUGURE",gender:"F"},{name:"BRAVIN GACHIE",gender:"M"},{name:"GEORGE KARANI",gender:"M"},{name:"EMMANUEL MBUGUA",gender:"M"},{name:"ANNE GATHONI",gender:"F"},{name:"HARRISON NJENGA",gender:"M"},{name:"KEAGAN KIRUKU",gender:"M"},{name:"LEVY MWANGI",gender:"M"},{name:"JOSEPH NKURUMAH",gender:"M"},{name:"DORCAS WAMBUI",gender:"F"},{name:"DAVID MACHARIA",gender:"M"},{name:"BENSON KARIUKI",gender:"M"},{name:"JOHN NJONGORO",gender:"M"},{name:"YVONNE MUTHONI",gender:"F"},{name:"ELIZABETH WANGARI",gender:"F"},{name:"MILKAH WANJIRU",gender:"F"},{name:"JOHN KARANJA",gender:"M"},{name:"EMMANUEL MACHARIA",gender:"M"},{name:"JOHN CHEGE",gender:"M"},{name:"OLIVIA ANGEL KIBUGI",gender:"F"},{name:"RYAN CHEGE",gender:"M"},{name:"SIMON KINYANJUI",gender:"M"},{name:"FRANCIS KIMANI",gender:"M"},{name:"LEWIS NJUGUNA",gender:"M"},{name:"BRIAN MAINA",gender:"M"},{name:"ANNE WAMBUI",gender:"F"},{name:"STEPHEN KAMAU",gender:"M"},{name:"ROBERT NJOROGE",gender:"M"},{name:"VINCENT KANYORA",gender:"M"},{name:"ANN WACERA",gender:"F"},{name:"BETH WANJIRU",gender:"F"},{name:"WILSON KASEKWA",gender:"M"},{name:"STEPHEN NJOROGE",gender:"M"},{name:"FABIAN GATHAKU",gender:"M"}] },
+  "2": { "": [{name:"ZIPPORAH WANJIRU",gender:"F"},{name:"JANE WANGUI",gender:"F"},{name:"IAN MWANGI",gender:"M"},{name:"ALICIOUS ANGEL",gender:"F"},{name:"DANIEL KAMAU",gender:"M"},{name:"LEAH NYAMBURA",gender:"F"},{name:"LEAH WANJIRU",gender:"F"},{name:"BEAUTRICE WANJIRU",gender:"F"},{name:"SHARON WANJIKU",gender:"F"},{name:"MAXWELL MUGURE",gender:"M"},{name:"JOSEPH MBUGUA",gender:"M"},{name:"SUMMERLOVE MUGURE",gender:"F"},{name:"DANSON GACHIE",gender:"M"},{name:"DAVIS MUIGAI",gender:"M"},{name:"LYAN LEMAYAN",gender:"M"},{name:"EUNICE NJERI",gender:"F"},{name:"MORGAN GITAU",gender:"M"},{name:"JAYDEN MBUGUA",gender:"M"},{name:"JAMES NGUGI",gender:"M"},{name:"FREDRICK NJENGA",gender:"M"},{name:"ESTHER NJOKI",gender:"F"},{name:"TRISTER MUTHONI",gender:"F"},{name:"SYLVIA WAMBUI",gender:"F"},{name:"PETER MUGO",gender:"M"},{name:"BRIAN KURIA",gender:"M"},{name:"BETH WANJIRU",gender:"F"},{name:"CARZIUS MWANGI",gender:"M"},{name:"AMOS MBUGUA",gender:"M"},{name:"RAELYNN WANJIRU",gender:"F"},{name:"EMMANUEL WAWERU",gender:"M"},{name:"JOSEPH GATHERU",gender:"M"},{name:"SAMUEL KAMAU",gender:"M"},{name:"JOHN NGUGI",gender:"M"},{name:"NELIAH WAIRIMU",gender:"F"},{name:"STACY NJAMBI",gender:"F"},{name:"HOPE WANGARI",gender:"F"},{name:"JOSEPH NG'ANG'A",gender:"M"},{name:"SALOME NDUTA",gender:"F"},{name:"MARGARET WANJAI",gender:"F"},{name:"JOSSAN NJOROGE",gender:"F"},{name:"EMMACULATE GATHONI",gender:"F"},{name:"PETER GICHU",gender:"M"},{name:"ANN WANGUI",gender:"F"},{name:"PRINCESS WANJIRU",gender:"F"},{name:"PATRICK CHEGE",gender:"M"},{name:"TANIA MUTHONI",gender:"F"},{name:"STEPHEN GITHINJI",gender:"M"},{name:"IBRAHIM KAHURA",gender:"M"},{name:"PETER KIMANI",gender:"M"},{name:"DAVID CHEGE",gender:"M"},{name:"DAVID THUKU",gender:"M"},{name:"MIRIAM WANJIKU",gender:"F"},{name:"PURITY MUMBI",gender:"F"}] },
+  "3": { "": [{name:"SHANTEL NJERI",gender:"F"},{name:"LUSET WAITHERA",gender:"F"},{name:"ELIZABETH WANGUI",gender:"F"},{name:"BLESSING WAMBUI",gender:"F"},{name:"ROSEBANCY WANJIRU",gender:"F"},{name:"GEORGE NGUGI",gender:"M"},{name:"JOHN MUNGAI",gender:"M"},{name:"NICKSON NGUGI",gender:"M"},{name:"GEORGE NDUATI",gender:"M"},{name:"JOSEPH MWANGI",gender:"M"},{name:"RUTH WAMBUI",gender:"F"},{name:"JOHN KIMANI",gender:"M"},{name:"ROBERT MUNGAI",gender:"M"},{name:"LOISE WAITHERA",gender:"F"},{name:"MALCOM KARANJA",gender:"M"},{name:"ETANA WANJIRU",gender:"F"},{name:"ELIZABETH WANJIKU",gender:"F"},{name:"JOYCE WACUKA",gender:"F"},{name:"JEMIMAH WANJIRU",gender:"F"},{name:"FRANCIS NJENGA",gender:"M"},{name:"CARSON MAKUMI",gender:"M"},{name:"LEWIS MWANGI",gender:"M"},{name:"BETH WANJIKU",gender:"F"},{name:"JOSPHINE WANGUI",gender:"F"},{name:"JOAN NJERI",gender:"F"},{name:"JIAN KIMANI",gender:"M"},{name:"STEPHEN THIONGO",gender:"M"},{name:"JOSEPH IGUANYA",gender:"M"},{name:"SAMUEL NJOROGE",gender:"M"},{name:"WINROSE WANGARI",gender:"F"},{name:"EVALYNE WAIRIMU",gender:"F"},{name:"TABITHA MURINGE",gender:"F"},{name:"CECILIA MUGURE",gender:"F"},{name:"MIRRIAM WANJIKU",gender:"F"},{name:"GLADYS WANGUI",gender:"F"},{name:"SHANTEL NYAMBURA",gender:"F"},{name:"JOSEPH NJUGUNA",gender:"M"},{name:"ELIZABETH RUGURU",gender:"F"},{name:"JOSHUA KIARIE",gender:"M"},{name:"MARY WAITHERA",gender:"F"},{name:"CORNELIUS KIAMA",gender:"M"},{name:"TERESIAH WANJIKU",gender:"F"},{name:"JAMES KIMANI",gender:"M"},{name:"LYAN WAMBUGU",gender:"M"},{name:"JOSEPH GACUNGA",gender:"M"},{name:"LAWRENCE NJENGA",gender:"M"},{name:"BENSON KARIUKI",gender:"M"},{name:"SAMUEL WAINAINA",gender:"M"},{name:"MOSES MWANGI",gender:"M"},{name:"MICHAEL IHUGO",gender:"M"},{name:"PATRICK CHEGE",gender:"M"},{name:"MINNE MUTHONI",gender:"F"},{name:"JAMES KUNGU",gender:"M"},{name:"FRANCIS MWAURA",gender:"M"},{name:"DANIEL GICHOHI",gender:"M"},{name:"HANNAH WAMBUI",gender:"F"},{name:"JOSEPH NJOROGE",gender:"M"},{name:"JOHN GACHUIRI",gender:"M"}] },
+  "4": { "": [{name:"EUNICE NDUNGU",gender:"F"},{name:"MONICA WAMBUI",gender:"F"},{name:"CONSTANT YANIS",gender:"M"},{name:"MARVEL MBUGUA",gender:"M"},{name:"PETER KIMANI",gender:"M"},{name:"PAUL CHEGE",gender:"M"},{name:"DANSON GACHIE",gender:"M"},{name:"BLESSED MBUGUA",gender:"M"},{name:"ANTONY KABIRU",gender:"M"},{name:"CHRISTABEL WANGARI",gender:"F"},{name:"TANYA WACUKA",gender:"F"},{name:"GRACE WAIRIMU",gender:"F"},{name:"CLAIRE WANGUI",gender:"F"},{name:"JAMES GITHINJI",gender:"M"},{name:"RAHAB GATHONI",gender:"F"},{name:"EMMANUEL MWAURA",gender:"M"},{name:"VINCENT NJENGA",gender:"M"},{name:"DAVID MUNGAI",gender:"M"},{name:"BRIAN NJOROGE",gender:"M"},{name:"PROMISE MAINA",gender:"M"},{name:"MICHAEL NJENGA",gender:"M"},{name:"FAITH WANGUI",gender:"F"},{name:"BENARD MUIGAI",gender:"M"},{name:"CYTHIA WAIRIMU",gender:"F"},{name:"MARY WAMBUI",gender:"F"},{name:"MARGARET NYOKABI",gender:"F"},{name:"JAMES KARANJA",gender:"M"},{name:"CELESTINE KERUBO",gender:"F"},{name:"JOY WAMBUI",gender:"F"},{name:"VIOLET BORE",gender:"F"},{name:"MARGARET WANJIRU",gender:"F"},{name:"JOSEPH GACHINGA",gender:"M"},{name:"MARIA WAMBUI",gender:"F"},{name:"CHRISTINE WAIRIMU",gender:"F"},{name:"LEWIS WAWERU",gender:"M"},{name:"FLORENCE NYOKABI",gender:"F"},{name:"ALEX WAINAINA",gender:"M"},{name:"SHEITON KIARIE",gender:"M"},{name:"MIRIAM WAMBUI",gender:"F"},{name:"RUTH NYAMBURA",gender:"F"},{name:"PATRICIA NJERI",gender:"F"},{name:"JAMES NJOROGE",gender:"M"},{name:"PRECIOUS NYAWIRA",gender:"F"},{name:"IAN KAIRU",gender:"M"},{name:"PENINAH MUMBI",gender:"F"},{name:"NAOMI WAMBUI",gender:"F"},{name:"NATALIE NYOKABI",gender:"F"},{name:"WILFRED MBUGUA",gender:"M"},{name:"JECINTA WAMBUI",gender:"F"},{name:"GEORGE GITAKA",gender:"M"},{name:"GRACE NJERI",gender:"F"},{name:"CHARITY WANJIKU",gender:"F"},{name:"LEE MWANGI",gender:"M"},{name:"JOSEPH NDUNGU",gender:"M"},{name:"WILLIAM KUNGU",gender:"M"},{name:"GODFREY NJUGE",gender:"M"},{name:"GRACE WANJIKU",gender:"F"},{name:"JOHN NDIRANGU",gender:"M"},{name:"AGNES WAMBUI",gender:"F"},{name:"FRANCIS NJOROGE",gender:"M"},{name:"DANIEL KIBE",gender:"M"},{name:"ANNE NJERI",gender:"F"},{name:"AGNES WANGUI",gender:"F"},{name:"CHARLES KAMAU",gender:"M"},{name:"MARGARET WAMBUI",gender:"F"},{name:"LUCY WANJIRU",gender:"F"},{name:"JOSEPH MBATIA",gender:"M"}] },
+  "5": { "": [{name:"MARGARET WANJIKU N",gender:"F"},{name:"IBRA WAWERU",gender:"M"},{name:"JANICE NYATHIRA",gender:"F"},{name:"RYAN KIMANI",gender:"M"},{name:"ALICE NERI W",gender:"F"},{name:"MARGARET WANGUI",gender:"F"},{name:"HANNAH WANJIRU",gender:"F"},{name:"SERAH WANJIKU",gender:"F"},{name:"LUCY MUTHAKI",gender:"F"},{name:"SAMUEL NERI",gender:"M"},{name:"JOHNSON KAHATO",gender:"M"},{name:"TABITHA GITAU",gender:"F"},{name:"LEWIS WANJIKU",gender:"M"},{name:"PETER NJENGA",gender:"M"},{name:"MOSES KARANJA",gender:"M"},{name:"MERCY MBURU",gender:"F"},{name:"ALICE WANJIKU W",gender:"F"},{name:"FIDELIS NERI",gender:"M"},{name:"PRECIOUS WANJIKU",gender:"F"},{name:"JAYDEN NYAMBURA",gender:"M"},{name:"BRANDON BAHATI",gender:"M"},{name:"TABITHA MWANGI",gender:"F"},{name:"ISAAC NERI",gender:"M"},{name:"MERCY MURURI",gender:"F"},{name:"EUGENE WANJIKU",gender:"M"},{name:"PURITY NJENGA",gender:"F"},{name:"ISAAC WANJIKU",gender:"M"},{name:"NANCY GICHAGI",gender:"F"},{name:"FRANCIS WANJIRU",gender:"M"},{name:"ASUMPTA NGITHUA",gender:"F"},{name:"ALICE WAMBUI",gender:"F"},{name:"FIDAH WATATI",gender:"F"},{name:"BLESSING KAWETO",gender:"F"},{name:"LEWIS NERI",gender:"M"},{name:"MARGARET MACHARIA",gender:"F"},{name:"ZACHARIAH NJUGUNA",gender:"M"},{name:"SHANIZE WAMBUI",gender:"F"},{name:"PETER MBAUNI",gender:"M"},{name:"JOYCE WAIRIMU",gender:"F"},{name:"LEWIS NJOGU",gender:"M"},{name:"NICK KIMANI",gender:"M"},{name:"JOHN GATIMU",gender:"M"},{name:"MARY MERI",gender:"F"},{name:"PETER MUGO",gender:"M"},{name:"VERONICAH MUKUHI",gender:"F"},{name:"GRACE WAMBUI",gender:"F"},{name:"ROSEMARY NJOKI",gender:"F"},{name:"ALICE WANJIRA",gender:"F"},{name:"IMMACULATE MERI",gender:"F"},{name:"GERALD MUHIA",gender:"M"},{name:"LYDIA WAMARITHA",gender:"F"},{name:"MILIANT WAMBUI",gender:"F"},{name:"JANE WAMBUI",gender:"F"},{name:"GEOFFREY NDIRANGU",gender:"M"},{name:"ISAAC MUORIA",gender:"M"},{name:"JANE WATHERA",gender:"F"},{name:"JEREMIAH NGANGLA",gender:"M"},{name:"IAN NGANGLA",gender:"M"},{name:"STEPHEN MBUTHIA",gender:"M"},{name:"JAMES MAINA",gender:"M"}] },
+  "6": { "East": [{name:"ANNE WANJIRU",gender:"F"},{name:"LAZARUS NJOROGE",gender:"M"},{name:"BLESSINGS WAMBUI",gender:"F"},{name:"JOYLEEN MUTHONI",gender:"F"},{name:"ASHLEY WAMBUI",gender:"F"},{name:"JAYVINE MWANGI",gender:"M"},{name:"JOSEPH NDUNGU",gender:"M"},{name:"MARYANNE WATIRI",gender:"F"},{name:"EVAN KIMANI",gender:"M"},{name:"JOHN NJOROGE",gender:"M"},{name:"JOHN GITAU",gender:"M"},{name:"MARGARET NJOKI",gender:"F"},{name:"EUNICE WAMBUI",gender:"F"},{name:"JOHN KIMANI",gender:"M"},{name:"IMMANUEL EDVINE",gender:"M"},{name:"MITCHELLE WANJIKU K.",gender:"F"},{name:"JOSEPH MUCHERU",gender:"M"},{name:"BETHA NJERI",gender:"F"},{name:"MICHAEL KINYANJUI",gender:"M"},{name:"ESTHER MUMBI",gender:"F"},{name:"SAMUEL NJUGUNA",gender:"M"},{name:"SUSAN WANGUI",gender:"F"},{name:"MARGARET NJERI",gender:"F"},{name:"RUTH WANJIRU",gender:"F"},{name:"JOHN KINYANJUI",gender:"M"},{name:"BLESS GITAU",gender:"M"},{name:"PETER MBUGUA",gender:"M"},{name:"JOSEPH WACHIRA",gender:"M"},{name:"LUKE KIMUNYI",gender:"M"},{name:"JOHN MAINA",gender:"M"},{name:"JANE WANJIRU",gender:"F"},{name:"PAULINE NYAMBURA",gender:"F"},{name:"ELIZABETH NJOKI",gender:"F"},{name:"FRANCIS KAMAU",gender:"M"},{name:"SHARLEEN WANJIKU",gender:"F"},{name:"DANIEL KANG'ETHE",gender:"M"},{name:"BENSON NGUGI",gender:"M"},{name:"VICTOR NDUNGU",gender:"M"},{name:"RUTH RUGURU",gender:"F"},{name:"PETER NJUGUNA",gender:"M"},{name:"JOSEPH KIHARA",gender:"M"}], "West": [{name:"IAN CHEGE",gender:"M"},{name:"PRECIOUS WANGUI",gender:"F"},{name:"JOY WANGUI",gender:"F"},{name:"CAROLINE MUMBI",gender:"F"},{name:"STEPHEN NJOROGE",gender:"M"},{name:"MARY WANGUI",gender:"F"},{name:"MARY NJERI",gender:"F"},{name:"VINCE KAMAU",gender:"M"},{name:"ZIPPORAH WANJIRU",gender:"F"},{name:"DANIEL MWANGI",gender:"M"},{name:"TABITHA MURINGI",gender:"F"},{name:"ALEX KOIGI",gender:"M"},{name:"SAMUEL MWANGI",gender:"M"},{name:"PAUL KIMANI",gender:"M"},{name:"ELVIS KINYANJUI",gender:"M"},{name:"TERRY NDUTA",gender:"M"},{name:"JOSEPH MBUGUA",gender:"M"},{name:"SAMUEL CHACHA",gender:"M"},{name:"MERCY NJERI",gender:"F"},{name:"PETER KIMANI",gender:"M"},{name:"MITCHELL WANJIKU",gender:"F"},{name:"FAITH WANGUI",gender:"F"},{name:"MARY WAITHONI",gender:"F"},{name:"HILDAH WAITHIRA",gender:"F"},{name:"GRACE WAITHIRA",gender:"F"},{name:"PAUL KAMAU",gender:"M"},{name:"VICTOR KABERI",gender:"M"},{name:"SAMUEL MUTURI",gender:"M"},{name:"SUSAN NJAMBI",gender:"F"},{name:"JAMES BIARU",gender:"M"},{name:"ROSE WAMBUI",gender:"F"},{name:"NATHANIEL KIMUTHU",gender:"M"},{name:"DAVID MACHARIA",gender:"M"},{name:"STEPHEN NDUNGU",gender:"M"},{name:"JOHN CHEGE",gender:"M"},{name:"ARMSTRONG MUNIU",gender:"M"},{name:"NANCY MWIHAKI",gender:"F"},{name:"BRIAN NDIRANGU",gender:"M"},{name:"PAUL KAGURU",gender:"M"},{name:"GLADYS WAMBUI",gender:"F"},{name:"VINCENT MAINA",gender:"M"},{name:"STEPHEN GITHAIGA",gender:"M"},{name:"BRIAN GICHEHA",gender:"M"},{name:"MARY NYAMBURA",gender:"F"}] },
 };
 
 const SEED_TERM = "Mid Term 2";
@@ -2904,19 +2862,20 @@ function App() {
   async function loadOneLearnersList(gr, str) {
     const lk = learnersKey(gr, str||"");
     const stored = await loadShared(lk, null);
-    // Only use the names/gender from the saved roster — NEVER carry over its
-    // scores, since those scores belong to whichever term was last saved.
-    // The correct term's marks (if any) are applied separately below by
-    // loadOneScores. Gender (and stream, for split grades) DO need to be
-    // carried over here, or every "Open Class" would silently reset them
-    // back to blank even though they're correctly saved in the roster.
-    if (stored && stored.length > 0) return stored.map(l=>({name:l.name, gender:l.gender||"", stream:l.stream, scores:blankScores()}));
-    // Fall back to initial data only for 2026 (seed year)
-    if (Number(year) <= 2026) {
-      const base = (INITIAL_LEARNERS[gr]||{})[str||""]||[];
-      return base.map(l=>({name:l.name, gender:l.gender||"", scores:blankScores()}));
+    const seed = (INITIAL_LEARNERS[gr]||{})[str||""]||[];
+    const seedGender = {};
+    seed.forEach(l => { if (l.gender) seedGender[l.name] = l.gender; });
+    // Names/gender/stream come from the saved roster; scores are NEVER carried
+    // over from it (they belong to whichever term was last saved). If a saved
+    // learner has no gender yet, fill it from the built-in roster by name so
+    // gender always shows even if the online copy is out of date.
+    if (Array.isArray(stored)) {
+      return stored.map(l=>({name:l.name, gender:l.gender||seedGender[l.name]||"", stream:l.stream, scores:blankScores()}));
     }
-    // In 2027+ with no stored data, start empty
+    // Nothing saved online (or not connected): use the built-in roster for 2026
+    if (Number(year) <= 2026) {
+      return seed.map(l=>({name:l.name, gender:l.gender||"", scores:blankScores()}));
+    }
     return [];
   }
 
