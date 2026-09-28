@@ -2586,7 +2586,14 @@ function App() {
     try {
       if (!GH) { setSubjectNotConnected(true); setSubjectList([]); return; }
       await loadDB(true); // always fetch fresh so a class teacher's recent save shows up
-      const roster = (await loadShared(learnersKey(subjectClass.grade, subjectClass.stream), [])) || [];
+      let roster = await loadShared(learnersKey(subjectClass.grade, subjectClass.stream||""), null);
+      // Nothing saved online for this class yet? Use the school's built-in
+      // class list (2026) so subject teachers always see their learners.
+      if (!Array.isArray(roster)) roster = null;
+      if (!roster && Number(subjectYear) <= 2026) {
+        roster = (INITIAL_LEARNERS[subjectClass.grade]||{})[subjectClass.stream||""] || [];
+      }
+      roster = roster || [];
       const scoresArr = await loadShared(storageKey(subjectClass.grade, subjectClass.stream, subjectTerm, subjectYear), null);
       setSubjectHasExistingRecord(!!(scoresArr && scoresArr.length));
       const scoreMap = {};
@@ -3839,7 +3846,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
             <button style={S.btn} onClick={()=>setShowSetup(true)}>⚙ Connect Now</button>
           </div>
         ) : subjectList.length === 0 ? (
-          <div style={{padding:20,textAlign:"center",color:"#888"}}>
+          <div style={{padding:"24px 20px",textAlign:"center",color:"#888"}}>
             No learners found for {clsLabel}. Ask the admin to make sure the class list has been set up for this grade.
           </div>
         ) : (
