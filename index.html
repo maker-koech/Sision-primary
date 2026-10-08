@@ -1167,6 +1167,26 @@ function computePathwayScores(scores) {
   });
 }
 const TERMS = ["Mid Term 1","End Term 1","Mid Term 2","End Term 2","Mid Term 3","End Term 3"];
+// Term 3 has three assessments for every grade: Assessment 1 (was Mid Term 3),
+// Assessment 2 (was End Term 3) and the new Assessment 3.
+const TERMS_T3A = ["Mid Term 1","End Term 1","Mid Term 2","End Term 2","Term 3 Assessment 1","Term 3 Assessment 2","Term 3 Assessment 3"];
+function termsFor(gr) { return TERMS_T3A; }
+// Maps an old Mid/End Term 3 selection to its Assessment equivalent.
+function normTerm(t, gr) {
+  if (TERMS_T3A.includes(t)) return t;
+  const map = { "Mid Term 3": "Term 3 Assessment 1", "End Term 3": "Term 3 Assessment 2" };
+  return map[t] || TERMS_T3A[0];
+}
+// Saved-data slug. Assessment 1 and 2 keep the old Mid/End Term 3 slugs so marks
+// already saved under those names stay attached.
+function termSlug(t) {
+  const legacy = { "Term 3 Assessment 1": "Mid_Term_3", "Term 3 Assessment 2": "End_Term_3" };
+  return legacy[t] || t.replace(/\s+/g,"_");
+}
+function shortTermLabel(t) {
+  return t.replace("Term 3 Assessment 1","T3 A1").replace("Term 3 Assessment 2","T3 A2").replace("Term 3 Assessment 3","T3 A3")
+          .replace("Mid Term","MT").replace("End Term","ET");
+}
 const YEARS = ["2024","2025","2026","2027","2028","2029","2030","2031","2032"];
 
 function getGrade(score) {
@@ -1198,9 +1218,11 @@ function calcStats(scores) {
   const total = vals.reduce((a,b)=>a+b,0);
   const points = SUBJECTS.map(s=>getGrade(scores[s])?.points||0).reduce((a,b)=>a+b,0);
   const avg = vals.length ? (total/vals.length).toFixed(2) : "0.00";
-  const ptAvg = SUBJECTS.length ? points/SUBJECTS.length : 0;
-  let level = "BE";
-  if (ptAvg >= 7.5) level="EE"; else if (ptAvg >= 5.5) level="ME"; else if (ptAvg >= 3.0) level="AE";
+  // Overall level comes from the learner's average percentage run through the
+  // current grading scale, so it follows any edits made on the Grading Scale
+  // screen and always agrees with the band shown for that average.
+  const avgBand = getGrade(avg);
+  const level = vals.length && avgBand ? avgBand.level : GRADES[GRADES.length-1].level;
   return { total, points, avg, level };
 }
 
@@ -1716,16 +1738,17 @@ function fmtDate(d) {
 }
 
 function storageKey(grade, stream, term, year) {
-  return `sision_scores_${grade}_${stream||"none"}_${term.replace(/\s+/g,"_")}_${year}`;
+  return `sision_scores_${grade}_${stream||"none"}_${termSlug(term)}_${year}`;
 }
 function learnersKey(grade, stream) { return `sision_learners_${grade}_${stream||"none"}`; }
 function commentKey(grade, scope, term, year) {
-  return `sision_comment_${grade}_${scope||"none"}_${term.replace(/\s+/g,"_")}_${year}`;
+  return `sision_comment_${grade}_${scope||"none"}_${termSlug(term)}_${year}`;
 }
-function getPrevTermYear(term, year) {
-  const idx = TERMS.indexOf(term);
-  if (idx > 0) return { prevTerm: TERMS[idx-1], prevYear: year };
-  return { prevTerm: TERMS[TERMS.length-1], prevYear: String(Number(year)-1) };
+function getPrevTermYear(term, year, gr) {
+  const TL = termsFor(gr);
+  const idx = TL.indexOf(term);
+  if (idx > 0) return { prevTerm: TL[idx-1], prevYear: year };
+  return { prevTerm: TL[TL.length-1], prevYear: String(Number(year)-1) };
 }
 // CSV export helper
 function downloadCSV(rows, filename) {
@@ -2448,6 +2471,8 @@ function App() {
   const [term, setTerm]           = useState(()=>localStorage.getItem("sision_last_term")||"Mid Term 2");
   const [year, setYear]           = useState(()=>localStorage.getItem("sision_last_year")||"2026");
   React.useEffect(()=>{ localStorage.setItem("sision_last_term", term); }, [term]);
+  // Grade 6 uses Term 3 Assessment 1-3; other grades use Mid/End Term 3.
+  React.useEffect(()=>{ const n = normTerm(term, grade); if (n !== term) setTerm(n); }, [grade, term]);
   React.useEffect(()=>{ localStorage.setItem("sision_last_year", year); }, [year]);
   const [classTeacher, setClassTeacher] = useState("");
 
@@ -2554,6 +2579,11 @@ function App() {
   }
   const [subjectTerm, setSubjectTerm]       = useState(()=>localStorage.getItem("sision_last_term")||"Mid Term 2");
   const [subjectYear, setSubjectYear]       = useState(()=>localStorage.getItem("sision_last_year")||"2026");
+  React.useEffect(()=>{
+    if (!subjectClass) return;
+    const n = normTerm(subjectTerm, subjectClass.grade);
+    if (n !== subjectTerm) setSubjectTerm(n);
+  }, [subjectClass, subjectTerm]);
   const [subjectList, setSubjectList]       = useState([]); // [{name, score}]
   const [subjectLoading, setSubjectLoading] = useState(false);
   const [subjectSaving, setSubjectSaving]   = useState(false);
@@ -2746,8 +2776,9 @@ function App() {
       const START_TERM = "Mid Term 2";
       const START_YEAR = 2026;
       const curY = parseInt(year);
-      const curIdx = TERMS.indexOf(term);
-      const startIdx = TERMS.indexOf(START_TERM);
+      const TL = termsFor(grade);
+      const curIdx = TL.indexOf(term);
+      const startIdx = TL.indexOf(START_TERM);
 
       // Build chronological list of all term/year combos from MT2 2026 to current (inclusive)
       const allTermYears = [];
@@ -2755,15 +2786,15 @@ function App() {
       let tidx = startIdx;
       while (y < curY || (y === curY && tidx <= curIdx)) {
         const shortYear = y !== curY ? ` '${String(y).slice(2)}` : "";
-        const shortTerm = TERMS[tidx].replace("Mid Term","MT").replace("End Term","ET");
+        const shortTerm = shortTermLabel(TL[tidx]);
         allTermYears.push({
           label: shortTerm + shortYear,
-          term: TERMS[tidx],
+          term: TL[tidx],
           year: String(y),
           isCurrent: y === curY && tidx === curIdx
         });
         tidx++;
-        if (tidx >= TERMS.length) { tidx = 0; y++; }
+        if (tidx >= TL.length) { tidx = 0; y++; }
       }
 
       const allNames = combinedForRanks.map(l => l.name);
@@ -2800,9 +2831,9 @@ function App() {
               const sc = l.scores || {};
               const hasSc = SUBJECTS.some(s => Number(sc[s]) > 0);
               const pts = SUBJECTS.map(s => getGrade(sc[s])?.points||0).reduce((a,b)=>a+b,0);
-              const ptAvg = SUBJECTS.length ? pts/SUBJECTS.length : 0;
-              let lvl = "BE";
-              if (ptAvg>=7.5) lvl="EE"; else if (ptAvg>=5.5) lvl="ME"; else if (ptAvg>=3.0) lvl="AE";
+              const hv = SUBJECTS.map(s => Number(sc[s])).filter(v => !isNaN(v) && v > 0);
+              const hBand = hv.length ? getGrade(hv.reduce((a,b)=>a+b,0)/hv.length) : null;
+              const lvl = hBand ? hBand.level : GRADES[GRADES.length-1].level;
               histMap[name].push({ label, level: hasSc?lvl:"–", points: hasSc?pts:"–" });
             } else {
               histMap[name].push({ label, level: "–", points: "–" });
@@ -2828,7 +2859,7 @@ function App() {
     if (page!=="results") return;
     let active = true;
     (async()=>{
-      const { prevTerm, prevYear } = getPrevTermYear(term, year);
+      const { prevTerm, prevYear } = getPrevTermYear(term, year, grade);
       const map = {};
       const addFromList = (lst) => {
         (lst||[]).forEach(l=>{
@@ -3711,7 +3742,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
           <div style={S.field}>
             <label style={S.label}>Term / Exam</label>
             <select style={S.select} value={term} onChange={e=>setTerm(e.target.value)}>
-              {TERMS.map(t=><option key={t}>{t}</option>)}
+              {termsFor(grade).map(t=><option key={t}>{t}</option>)}
             </select>
           </div>
           <div style={S.field}>
@@ -3820,7 +3851,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
               </select>
             )}
             <select style={S.select} value={subjectTerm} onChange={e=>setSubjectTerm(e.target.value)}>
-              {TERMS.map(t=><option key={t} value={t}>{t}</option>)}
+              {termsFor(subjectClass ? subjectClass.grade : "").map(t=><option key={t} value={t}>{t}</option>)}
             </select>
             <select style={S.select} value={subjectYear} onChange={e=>setSubjectYear(e.target.value)}>
               {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
