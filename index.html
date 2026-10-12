@@ -584,16 +584,32 @@ function SchoolSettingsScreen({ schoolName, schoolCounty, schoolMotto, onSave, o
     if (!GH) { alert("Not connected to GitHub. Connect first so this is shared with everyone."); return; }
     setSaving(true);
     try {
-      const data = { name, county, motto };
-      const ok = await saveShared("sision_school_config", data);
-      if (ok) {
-        onSave(data);
-        document.title = (name || "Results App") + " — Results";
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      } else {
-        alert(`Save failed: ${LAST_SYNC_ERROR || "Unknown error."}`);
+      // Only create logins for subjects still in the lists
+      const logins = pendingLogins.filter(p => (p.band === "lower" ? lowerList : upperList).some(s => s.code === p.subject));
+      let existing = {};
+      if (logins.length) {
+        await loadDB(true);
+        existing = (await loadShared("customUsers", {})) || {};
+        const clash = logins.filter(p => existing[p.username] || USERS[p.username]).map(p => p.username);
+        if (clash.length) { alert(`These login usernames already exist: ${clash.join(", ")}. Remove them or pick another username.`); return; }
       }
+      const okL = await saveShared(subjectsConfigKey("lower"), lowerList);
+      const okU = await saveShared(subjectsConfigKey("upper"), upperList);
+      if (!(okL && okU)) { alert(`Save failed: ${LAST_SYNC_ERROR || "Unknown error."}`); return; }
+      onSaveLower(lowerList);
+      onSaveUpper(upperList);
+      if (logins.length) {
+        const merged = { ...existing };
+        logins.forEach(p => {
+          merged[p.username] = { password: p.password, role: "subjectTeacher", name: p.name,
+            subjects: [p.subject], classes: p.band === "lower" ? LOWER_CLASSES : UPPER_CLASSES };
+        });
+        const okC = await saveShared("customUsers", merged);
+        if (!okC) { alert(`Subjects saved, but the new logins failed to save: ${LAST_SYNC_ERROR || "Unknown error."} You can add them from Manage Team.`); return; }
+        setPendingLogins([]);
+      }
+      setSaved(true);
+      setTimeout(()=>setSaved(false), 2500);
     } finally {
       setSaving(false);
     }
@@ -722,8 +738,9 @@ function GradingSystemScreen({ grades, onSave, onDone }) {
 function ManageSubjectsScreen({ lower, upper, grade6Mode, onSaveLower, onSaveUpper, onDone }) {
   const [lowerList, setLowerList] = useState(() => lower.map(s=>({...s})));
   const [upperList, setUpperList] = useState(() => upper.map(s=>({...s})));
-  const [newLower, setNewLower] = useState({ code: "", label: "" });
-  const [newUpper, setNewUpper] = useState({ code: "", label: "" });
+  const [newLower, setNewLower] = useState({ code: "", label: "", loginUser: "", loginPass: "" });
+  const [pendingLogins, setPendingLogins] = useState([]); // logins to create on Save
+  const [newUpper, setNewUpper] = useState({ code: "", label: "", loginUser: "", loginPass: "" });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -772,8 +789,17 @@ function ManageSubjectsScreen({ lower, upper, grade6Mode, onSaveLower, onSaveUpp
     const label = draft.label.trim() || code;
     if (!code) return;
     if (list.some(s=>s.code===code)) { alert(`${code} is already in this list.`); return; }
+    const loginUser = (draft.loginUser || "").trim().toLowerCase();
+    if (loginUser) {
+      if (!/^[a-z0-9._-]+$/.test(loginUser)) { alert("Login username can only use letters, numbers, dot, dash or underscore (no spaces)."); return; }
+      if (USERS[loginUser] || pendingLogins.some(p => p.username === loginUser)) { alert(`The username "${loginUser}" is already taken.`); return; }
+    }
     setList([...list, { code, label }]);
-    setDraft({ code: "", label: "" });
+    if (loginUser) {
+      setPendingLogins(p => [...p, { username: loginUser, password: (draft.loginPass || "").trim() || "2026",
+        name: `${label} Teacher`, subject: code, band }]);
+    }
+    setDraft({ code: "", label: "", loginUser: "", loginPass: "" });
   }
 
   async function save() {
@@ -811,6 +837,10 @@ function ManageSubjectsScreen({ lower, upper, grade6Mode, onSaveLower, onSaveUpp
           <input style={inp} value={newLower.label} placeholder="Full name, e.g. Music" onChange={e=>setNewLower(d=>({...d,label:e.target.value}))} />
           <button style={btn("#16a34a")} onClick={()=>addSubject("lower")}>+ Add</button>
         </div>
+        <div style={{ display: "flex", gap: 8, marginTop: -12, marginBottom: 20 }}>
+          <input style={inp} autoCapitalize="none" value={newLower.loginUser} placeholder="Login username (optional), e.g. music" onChange={e=>setNewLower(d=>({...d,loginUser:e.target.value}))} />
+          <input style={inp} value={newLower.loginPass} placeholder="Password (default 2026)" onChange={e=>setNewLower(d=>({...d,loginPass:e.target.value}))} />
+        </div>
 
         {renderList(upperList, setUpperList, "Upper Primary — Grades 4–6")}
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
@@ -818,13 +848,28 @@ function ManageSubjectsScreen({ lower, upper, grade6Mode, onSaveLower, onSaveUpp
           <input style={inp} value={newUpper.label} placeholder="Full name, e.g. Music" onChange={e=>setNewUpper(d=>({...d,label:e.target.value}))} />
           <button style={btn("#16a34a")} onClick={()=>addSubject("upper")}>+ Add</button>
         </div>
+        <div style={{ display: "flex", gap: 8, marginTop: -12, marginBottom: 20 }}>
+          <input style={inp} autoCapitalize="none" value={newUpper.loginUser} placeholder="Login username (optional), e.g. science" onChange={e=>setNewUpper(d=>({...d,loginUser:e.target.value}))} />
+          <input style={inp} value={newUpper.loginPass} placeholder="Password (default 2026)" onChange={e=>setNewUpper(d=>({...d,loginPass:e.target.value}))} />
+        </div>
+        {pendingLogins.length > 0 && (
+          <div style={{ background:"#f0fdf4", border:"1px solid #86efac", borderRadius:8, padding:"10px 14px", marginBottom:16, fontSize:12, color:"#166534" }}>
+            <b>Logins that will be created when you tap Save:</b>
+            {pendingLogins.map(p => (
+              <div key={p.username} style={{ marginTop: 4 }}>
+                {p.username} / {p.password} -- {p.subject}
+                <button onClick={()=>setPendingLogins(l=>l.filter(x=>x.username!==p.username))} style={{ border:"none", background:"none", color:"#c0392b", cursor:"pointer", fontSize:12 }}> remove</button>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div style={{ background:"#f8f9fb", border:"1px solid #e5e7eb", borderRadius:8, padding:"12px 14px", marginBottom:16, fontSize:12, color:"#555" }}>
           <b>About classes:</b> Grade 6 is currently split into two streams
           ({grade6Mode==="split" ? "East & West" : "a single class"}). Whether Grade 6 is split, and
           the East/West names themselves, are changed from the <b>🔄 Re-run Year Setup</b> wizard on
           the home screen — that keeps them in sync with each year's promotion and stream records.
-          Adding or removing a subject here does not delete any marks already saved under a subject
+          Tip: type a login username next to a new subject to create its teacher login at the same time (it also shows in Manage Team). Adding or removing a subject here does not delete any marks already saved under a subject
           you remove — it just stops appearing on future entry screens and reports.
         </div>
 
@@ -950,29 +995,22 @@ function LoginScreen({ onLogin }) {
   async function tryLogin() {
     setError("");
     const uname = username.trim().toLowerCase();
-    const entry = USERS[uname];
-    if (!entry) { setError("Username not recognised. Check with the admin."); return; }
+    if (!uname) { setError("Enter your username."); return; }
     setChecking(true);
-    let effectivePassword = entry.password;
+    let all = null;
     try {
-      if (GH) {
-        await loadDB(true);
-        const overrides = await loadShared("userOverrides", {});
-        if (overrides && overrides[uname] && overrides[uname].password) {
-          effectivePassword = overrides[uname].password;
-        }
-      }
+      if (GH) await loadDB(true);
+      all = await loadAllUsers();
     } catch {}
+    if (!all) {
+      all = {};
+      Object.entries(USERS).forEach(([u, e]) => { all[u] = e; });
+    }
     setChecking(false);
-    if (password !== effectivePassword) { setError("Incorrect password."); return; }
-    let displayName = entry.name;
-    try {
-      if (GH) {
-        const overrides = await loadShared("userOverrides", {});
-        if (overrides && overrides[uname] && overrides[uname].name) displayName = overrides[uname].name;
-      }
-    } catch {}
-    const session = { username: uname, role: entry.role, name: displayName,
+    const entry = all[uname];
+    if (!entry || entry.disabled) { setError("Username not recognised. Check with the admin."); return; }
+    if (password !== entry.password) { setError("Incorrect password."); return; }
+    const session = { username: uname, role: entry.role, name: entry.name,
       classes: entry.classes || [], subjects: entry.subjects || [] };
     try { localStorage.setItem("sision_user_session", JSON.stringify(session)); } catch {}
     onLogin(session);
@@ -1010,86 +1048,210 @@ function LoginScreen({ onLogin }) {
 }
 
 function TeacherAdminScreen({ onDone }) {
-  const [overrides, setOverrides] = useState({}); // { username: {name, password} }
+  const [rows, setRows] = useState({});   // username -> entry (+ builtin/custom/disabled/deleted flags)
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [nu, setNu] = useState({ username: "", password: "", name: "", role: "subjectTeacher", subjects: [], classes: [] });
+
+  // Every subject currently configured (Lower + Upper), so new subjects like
+  // SCIENCE / AGRICULTURE show up here as soon as they are added.
+  const subjectOptions = (() => {
+    const m = {};
+    [...(SUBJECTS_LOWER_CFG || []), ...(SUBJECTS_UPPER_CFG || [])].forEach(s => { if (!m[s.code]) m[s.code] = s.label; });
+    return Object.entries(m).map(([code, label]) => ({ code, label }));
+  })();
+  const classId = c => `${c.grade}|${c.stream || ""}`;
+  const classLabel = c => `Gr ${c.grade}${c.stream ? " " + c.stream : ""}`;
 
   useEffect(() => {
     (async () => {
-      if (GH) {
-        await loadDB(true);
-        const existing = await loadShared("userOverrides", {});
-        setOverrides(existing || {});
+      try {
+        if (GH) await loadDB(true);
+        setRows(await loadAllUsers());
+      } catch {
+        const all = {};
+        Object.entries(USERS).forEach(([u, e]) => { all[u] = { ...e, builtin: true }; });
+        setRows(all);
       }
       setLoading(false);
     })();
   }, []);
 
-  function fieldFor(username, field, fallback) {
-    const o = overrides[username];
-    return (o && o[field] !== undefined && o[field] !== "") ? o[field] : fallback;
-  }
+  function update(username, patch) { setRows(r => ({ ...r, [username]: { ...r[username], ...patch } })); }
+  function toggleSubject(list, code) { return list.includes(code) ? list.filter(c => c !== code) : [...list, code]; }
+  function toggleClass(list, c) { return list.some(x => classId(x) === classId(c)) ? list.filter(x => classId(x) !== classId(c)) : [...list, c]; }
 
-  function setField(username, field, value) {
-    setOverrides(o => ({ ...o, [username]: { ...(o[username]||{}), [field]: value } }));
+  function addLogin() {
+    const uname = nu.username.trim().toLowerCase();
+    if (!/^[a-z0-9._-]+$/.test(uname)) { alert("Username can only use letters, numbers, dot, dash or underscore (no spaces)."); return; }
+    if (rows[uname] && !rows[uname].deleted) { alert(`The username "${uname}" is already taken.`); return; }
+    if (!nu.password.trim()) { alert("Give this login a password."); return; }
+    if (nu.role === "subjectTeacher" && nu.subjects.length === 0) { alert("Pick at least one subject for this login."); return; }
+    if (nu.role !== "admin" && nu.classes.length === 0) { alert("Pick at least one class for this login."); return; }
+    const entry = { password: nu.password.trim(), role: nu.role, name: nu.name.trim() || (nu.role === "admin" ? "Administrator" : nu.role === "classTeacher" ? "Class Teacher" : "Subject Teacher"),
+      custom: true };
+    if (nu.role === "subjectTeacher") entry.subjects = nu.subjects;
+    if (nu.role !== "admin") entry.classes = nu.classes;
+    setRows(r => ({ ...r, [uname]: entry }));
+    setNu({ username: "", password: "", name: "", role: "subjectTeacher", subjects: [], classes: [] });
   }
 
   async function save() {
     if (!GH) { alert("Not connected to GitHub. Connect first so changes can be shared with everyone."); return; }
     setSaving(true);
     try {
-      const ok = await saveShared("userOverrides", overrides);
-      if (ok) { setSaved(true); setTimeout(()=>setSaved(false), 2000); }
-      else alert("Save failed. Check your internet connection and try again.");
+      const custom = {}, overrides = {};
+      Object.entries(rows).forEach(([u, e]) => {
+        if (e.custom) {
+          if (e.deleted) return;
+          const c = { password: e.password, role: e.role, name: e.name };
+          if (e.subjects) c.subjects = e.subjects;
+          if (e.classes) c.classes = e.classes;
+          custom[u] = c;
+        } else if (e.builtin) {
+          const base = USERS[u];
+          const o = { name: e.name, password: e.password };
+          if (e.disabled) o.disabled = true;
+          if (e.role !== "admin") {
+            if (JSON.stringify(e.subjects || []) !== JSON.stringify(base.subjects || [])) o.subjects = e.subjects || [];
+            if (JSON.stringify(e.classes || []) !== JSON.stringify(base.classes || [])) o.classes = e.classes || [];
+          }
+          overrides[u] = o;
+        }
+      });
+      const ok1 = await saveShared("customUsers", custom);
+      const ok2 = await saveShared("userOverrides", overrides);
+      if (ok1 && ok2) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
+      else alert(`Save failed: ${LAST_SYNC_ERROR || "check your internet connection and try again."}`);
     } finally {
       setSaving(false);
     }
   }
 
-  const bx = { maxWidth: 560, margin: "32px auto", background: "#fff", borderRadius: 14,
+  const bx = { maxWidth: 600, margin: "32px auto", background: "#fff", borderRadius: 14,
     padding: "28px 22px", fontFamily: "-apple-system,sans-serif", boxShadow: "0 2px 20px rgba(0,0,0,0.10)" };
   const inp = { width: "100%", padding: "9px 11px", border: "1px solid #ddd", borderRadius: 8,
     fontSize: 13, marginTop: 4, boxSizing: "border-box" };
   const btn = (bg) => ({ marginTop: 12, width: "100%", padding: 12, background: bg, color: "#fff",
     border: "none", borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: "pointer" });
-
+  const chip = (on) => ({ padding: "5px 10px", borderRadius: 16, fontSize: 12, cursor: "pointer",
+    border: on ? "1px solid #1a56db" : "1px solid #ccc", background: on ? "#1a56db" : "#f3f4f6", color: on ? "#fff" : "#444" });
+  const smallBtn = (bg) => ({ padding: "5px 10px", borderRadius: 6, border: "none", background: bg, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer" });
   const roleLabel = (role) => role === "admin" ? "Administrator" : role === "classTeacher" ? "Class Teacher" : "Subject Teacher";
+  const labelOf = (code) => (subjectOptions.find(s => s.code === code) || {}).label || code;
+
+  function ChipRow({ title, children }) {
+    return (<div style={{ marginTop: 8 }}>
+      <div style={{ fontSize: 10, color: "#888", marginBottom: 4 }}>{title}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{children}</div>
+    </div>);
+  }
+
+  const visible = Object.entries(rows).filter(([, e]) => !e.deleted);
 
   return (
     <div style={{ background: "#eef2ff", minHeight: "100vh", padding: "16px 12px" }}>
       <div style={bx}>
-        <div style={{ fontSize: 21, fontWeight: 800, marginBottom: 2 }}>✏️ Manage Team</div>
+        <div style={{ fontSize: 21, fontWeight: 800, marginBottom: 2 }}>Manage Team & Logins</div>
         <p style={{ fontSize: 13, color: "#555", margin: "4px 0 18px" }}>
-          Change each person's display name and password. Roles and which classes/subjects they cover stay fixed here — only name and password update.
+          Add new logins (for example after splitting a subject), change names, passwords, subjects and classes, or turn a login off.
+          Tap <b>Save Team</b> when done -- everyone uses the new logins right away.
         </p>
-        {!GH && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 12 }}>Not connected to GitHub — connect first so changes can be shared with everyone.</div>}
+        {!GH && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 12 }}>Not connected to GitHub -- connect first so changes can be shared with everyone.</div>}
+
+        {/* ---- ADD A NEW LOGIN ---- */}
+        <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 10, padding: "14px 14px 16px", marginBottom: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>+ Add a new login</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ flex: "1 1 130px" }}>
+              <label style={{ fontSize: 10, color: "#888" }}>Username</label>
+              <input style={inp} autoCapitalize="none" value={nu.username} placeholder="e.g. science" onChange={e => setNu(d => ({ ...d, username: e.target.value }))} />
+            </div>
+            <div style={{ flex: "1 1 130px" }}>
+              <label style={{ fontSize: 10, color: "#888" }}>Password</label>
+              <input style={inp} value={nu.password} placeholder="e.g. 2026" onChange={e => setNu(d => ({ ...d, password: e.target.value }))} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            <div style={{ flex: "1 1 130px" }}>
+              <label style={{ fontSize: 10, color: "#888" }}>Display name</label>
+              <input style={inp} value={nu.name} placeholder="e.g. Science Teacher" onChange={e => setNu(d => ({ ...d, name: e.target.value }))} />
+            </div>
+            <div style={{ flex: "1 1 130px" }}>
+              <label style={{ fontSize: 10, color: "#888" }}>Role</label>
+              <select style={inp} value={nu.role} onChange={e => setNu(d => ({ ...d, role: e.target.value }))}>
+                <option value="subjectTeacher">Subject Teacher</option>
+                <option value="classTeacher">Class Teacher</option>
+                <option value="admin">Administrator</option>
+              </select>
+            </div>
+          </div>
+          {nu.role === "subjectTeacher" && (
+            <ChipRow title="Subjects this person enters marks for">
+              {subjectOptions.map(s => (
+                <span key={s.code} style={chip(nu.subjects.includes(s.code))} onClick={() => setNu(d => ({ ...d, subjects: toggleSubject(d.subjects, s.code) }))}>{s.label}</span>
+              ))}
+            </ChipRow>
+          )}
+          {nu.role !== "admin" && (
+            <ChipRow title="Classes">
+              {ALL_CLASSES.map(c => (
+                <span key={classId(c)} style={chip(nu.classes.some(x => classId(x) === classId(c)))} onClick={() => setNu(d => ({ ...d, classes: toggleClass(d.classes, c) }))}>{classLabel(c)}</span>
+              ))}
+            </ChipRow>
+          )}
+          <button style={btn("#16a34a")} onClick={addLogin}>+ Add Login</button>
+          <div style={{ fontSize: 11, color: "#666", marginTop: 6 }}>It appears in the list below straight away. Remember to press <b>Save Team</b> at the bottom.</div>
+        </div>
+
+        {/* ---- EXISTING LOGINS ---- */}
         {loading ? (
-          <div style={{ padding: 20, textAlign: "center", color: "#888" }}>Loading…</div>
+          <div style={{ padding: 20, textAlign: "center", color: "#888" }}>Loading...</div>
         ) : (
-          Object.entries(USERS).map(([username, entry]) => (
-            <div key={username} style={{ marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #eee" }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "#444", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Login: {username} · {roleLabel(entry.role)}{entry.subjects && entry.subjects.length ? " · " + entry.subjects.join("/") : ""}
-              </label>
+          visible.map(([username, e]) => (
+            <div key={username} style={{ marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #eee", opacity: e.disabled ? 0.5 : 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#444", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Login: {username} -- {roleLabel(e.role)}{e.custom ? " (new)" : ""}{e.disabled ? " (OFF)" : ""}
+                </label>
+                {e.role !== "admin" && (e.custom
+                  ? <button style={smallBtn("#c0392b")} onClick={() => { if (window.confirm(`Delete the login "${username}"?`)) update(username, { deleted: true }); }}>Delete</button>
+                  : <button style={smallBtn(e.disabled ? "#16a34a" : "#888")} onClick={() => update(username, { disabled: !e.disabled })}>{e.disabled ? "Turn on" : "Turn off"}</button>)}
+              </div>
               <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: 10, color: "#888" }}>Name</label>
-                  <input style={inp} value={fieldFor(username, "name", entry.name)}
-                    onChange={e => setField(username, "name", e.target.value)} />
+                  <input style={inp} value={e.name || ""} onChange={ev => update(username, { name: ev.target.value })} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: 10, color: "#888" }}>Password</label>
-                  <input style={inp} value={fieldFor(username, "password", entry.password)}
-                    onChange={e => setField(username, "password", e.target.value)} />
+                  <input style={inp} value={e.password || ""} onChange={ev => update(username, { password: ev.target.value })} />
                 </div>
               </div>
+              {e.role === "subjectTeacher" && (
+                <ChipRow title="Subjects">
+                  {subjectOptions.map(s => (
+                    <span key={s.code} style={chip((e.subjects || []).includes(s.code))} onClick={() => update(username, { subjects: toggleSubject(e.subjects || [], s.code) })}>{s.label}</span>
+                  ))}
+                  {(e.subjects || []).filter(c => !subjectOptions.some(s => s.code === c)).map(c => (
+                    <span key={c} style={{ ...chip(true), background: "#c0392b", border: "1px solid #c0392b" }} title="This subject was removed from Manage Subjects" onClick={() => update(username, { subjects: toggleSubject(e.subjects || [], c) })}>{c} (removed)</span>
+                  ))}
+                </ChipRow>
+              )}
+              {e.role !== "admin" && (
+                <ChipRow title="Classes">
+                  {ALL_CLASSES.map(c => (
+                    <span key={classId(c)} style={chip((e.classes || []).some(x => classId(x) === classId(c)))} onClick={() => update(username, { classes: toggleClass(e.classes || [], c) })}>{classLabel(c)}</span>
+                  ))}
+                </ChipRow>
+              )}
             </div>
           ))
         )}
-        {saved && <div style={{ color: "#16a34a", fontSize: 12, marginBottom: 8 }}>✅ Saved! Everyone will use their new name/password next time they log in.</div>}
-        <button style={btn("#1a56db")} onClick={save} disabled={saving || loading}>{saving ? "Saving…" : "💾 Save Team"}</button>
-        <button style={{ ...btn("#555"), marginTop: 6 }} onClick={onDone}>← Back</button>
+        {saved && <div style={{ color: "#16a34a", fontSize: 12, marginBottom: 8 }}>Saved! Everyone will use the updated logins next time they log in.</div>}
+        <button style={btn("#1a56db")} onClick={save} disabled={saving || loading}>{saving ? "Saving..." : "Save Team"}</button>
+        <button style={{ ...btn("#555"), marginTop: 6 }} onClick={onDone}>Back</button>
       </div>
     </div>
   );
@@ -1368,6 +1530,33 @@ const USERS = {
   "social": { password: "2026", role: "subjectTeacher", name: "Subject Teacher (edit me)",
     subjects: ["SOCIAL"], classes: UPPER_CLASSES },
 };
+
+// -- ALL LOGINS = built-in USERS + custom logins the admin adds ------------------
+// Custom logins live on GitHub under "customUsers" so they appear on every
+// device and on the admin's Manage Team screen. Edits to the built-in logins
+// (name, password, subjects, classes, disabled) live under "userOverrides".
+async function loadAllUsers() {
+  let custom = {}, overrides = {};
+  try {
+    if (GH) {
+      custom = (await loadShared("customUsers", {})) || {};
+      overrides = (await loadShared("userOverrides", {})) || {};
+    }
+  } catch {}
+  const all = {};
+  Object.entries(USERS).forEach(([u, e]) => { all[u] = { ...e, builtin: true }; });
+  Object.entries(custom).forEach(([u, e]) => { all[u] = { ...e, custom: true }; });
+  Object.keys(all).forEach(u => {
+    const o = overrides[u];
+    if (!o) return;
+    if (o.password) all[u].password = o.password;
+    if (o.name) all[u].name = o.name;
+    if (Array.isArray(o.subjects)) all[u].subjects = o.subjects;
+    if (Array.isArray(o.classes)) all[u].classes = o.classes;
+    if (o.disabled) all[u].disabled = true;
+  });
+  return all;
+}
 
 // ─── YEAR ADVANCEMENT HELPERS ────────────────────────────────────────────────
 // Key to store the advancement config for a given year
