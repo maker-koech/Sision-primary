@@ -459,6 +459,20 @@ async function loadShared(key, fb) {
   const db = await loadDB();
   return (db[key] !== undefined && db[key] !== null) ? db[key] : fb;
 }
+// Safely save several keys at once, in ONE commit. `build(db)` may change db
+// freely (it always receives the freshest data); return false to cancel.
+async function saveSharedMany(build, retries) {
+  retries = retries === undefined ? 3 : retries;
+  if (!GH) return false;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 600 * attempt));
+    await loadDB(true);
+    const db = DB_CACHE || {};
+    if (build(db) === false) return false;
+    if (await saveDB(db)) return true;
+  }
+  return false;
+}
 // Safely save one key into the shared database. Re-fetches fresh data on every
 // attempt before merging in the change, so this can never silently overwrite
 // another device's more recent save — only the one key being set here changes,
@@ -530,6 +544,11 @@ function mergeScoresForSave(localList, freshList, baselineMap) {
       const editedThisSession = String(localVal ?? "") !== String(baselineVal ?? "");
       merged[sub] = editedThisSession ? (localVal ?? "") : (freshVal !== undefined ? freshVal : (localVal ?? ""));
     });
+    // KEEP marks for subjects that are not in the current subject list (e.g. a
+    // subject that was removed or split). They are simply hidden, never deleted,
+    // so adding the subject back brings its marks straight back.
+    Object.keys(fresh).forEach(k => { if (!(k in merged)) merged[k] = fresh[k]; });
+    Object.keys(local.scores || {}).forEach(k => { if (!(k in merged)) merged[k] = local.scores[k]; });
     // Gender/stream aren't per-subject marks, so there's no "edited this
     // session" tracking for them the way there is for scores above — the
     // local (on-screen) value always wins if set, otherwise fall back to
@@ -735,148 +754,283 @@ function GradingSystemScreen({ grades, onSave, onDone }) {
 }
 
 // ─── MANAGE SUBJECTS & CLASSES (admin-editable subject lists) ─────────────────
-function ManageSubjectsScreen({ lower, upper, grade6Mode, onSaveLower, onSaveUpper, onDone }) {
-  const [lowerList, setLowerList] = useState(() => lower.map(s=>({...s})));
-  const [upperList, setUpperList] = useState(() => upper.map(s=>({...s})));
-  const [newLower, setNewLower] = useState({ code: "", label: "", loginUser: "", loginPass: "" });
-  const [pendingLogins, setPendingLogins] = useState([]); // logins to create on Save
-  const [newUpper, setNewUpper] = useState({ code: "", label: "", loginUser: "", loginPass: "" });
+function ManageSubjectsScreen({ lower, upper, gradeCfg, grade6Mode, onSaveGrade, onDone }) {
+  const GR = ["1","2","3","4","5","6"];
+  const isLowerGrade = g => ["1","2","3"].includes(g);
+  const bandDefault = g => (isLowerGrade(g) ? lower : upper);
+  const [lists, setLists] = useState(() => {
+    const m = {};
+    GR.forEach(g => { m[g] = ((gradeCfg && gradeCfg[g] && gradeCfg[g].length) ? gradeCfg[g] : bandDefault(g)).map(s => ({ ...s })); });
+    return m;
+  });
+  const [touched, setTouched] = useState({});
+  const [g, setG] = useState("6");
+  const [draft, setDraft] = useState({ code: "", label: "", loginUser: "", loginPass: "" });
+  const [pendingLogins, setPendingLogins] = useState([]);
+  const [found, setFound] = useState([]);       // subjects that still have saved marks but are not in the list
+  const [scanMsg, setScanMsg] = useState("");
+  const [recoverMsg, setRecoverMsg] = useState("");
+  const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const list = lists[g];
+  const gradeStreams = g === "6" ? (grade6Mode === "split" ? " (East & West share this list)" : "") : "";
+
   const bx = { maxWidth: 640, margin: "32px auto", background: "#fff", borderRadius: 14,
     padding: "28px 22px", fontFamily: "-apple-system,sans-serif", boxShadow: "0 2px 20px rgba(0,0,0,0.10)" };
-  const inp = { flex: 1, padding: "8px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 };
+  const inp = { flex: 1, padding: "8px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13, minWidth: 0 };
   const btn = (bg) => ({ padding: "10px 16px", background: bg, color: "#fff",
     border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" });
+  const smallBtn = (bg) => ({ padding: "6px 10px", background: bg, color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" });
+  const gradeChip = (on) => ({ padding: "8px 14px", borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: "pointer",
+    border: on ? "1px solid #1a56db" : "1px solid #ccc", background: on ? "#1a56db" : "#f3f4f6", color: on ? "#fff" : "#444" });
 
-  function renderList(list, setList, label) {
-    function remove(code) {
-      if (list.length <= 1) { alert("Each band needs at least one subject."); return; }
-      if (!window.confirm(`Remove ${code} from ${label}?`)) return;
-      setList(l => l.filter(s=>s.code!==code));
-    }
-    function rename(code) {
-      const cur = list.find(s=>s.code===code);
-      const next = prompt(`Full name for "${code}":`, cur.label);
-      if (next===null) return;
-      setList(l => l.map(s=>s.code===code?{...s,label:next.trim()||s.label}:s));
-    }
-    return (
-      <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #eee" }}>
-        <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>{label}</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-          {list.map(s => (
-            <div key={s.code} style={{ display: "flex", alignItems: "center", gap: 6,
-              background: "#f3f4f6", borderRadius: 20, padding: "5px 6px 5px 12px", fontSize: 13 }}>
-              <span style={{ fontWeight: 700 }}>{s.code}</span>
-              <span style={{ color: "#666", fontSize: 11 }}>({s.label})</span>
-              <button onClick={()=>rename(s.code)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 12 }} title="Rename">✏️</button>
-              <button onClick={()=>remove(s.code)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 12, color: "#c0392b" }} title="Remove">✕</button>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+  function setListFor(grade, fn) {
+    setLists(m => ({ ...m, [grade]: fn(m[grade]) }));
+    setTouched(t => ({ ...t, [grade]: true }));
   }
-
-  function addSubject(band) {
-    const draft = band==="lower" ? newLower : newUpper;
-    const list = band==="lower" ? lowerList : upperList;
-    const setList = band==="lower" ? setLowerList : setUpperList;
-    const setDraft = band==="lower" ? setNewLower : setNewUpper;
-    const code = draft.code.trim().toUpperCase();
+  function remove(code) {
+    if (list.length <= 1) { alert("A grade needs at least one subject."); return; }
+    if (!window.confirm(`Hide ${code} from Grade ${g}?\n\nIts marks are NOT deleted -- they stay safely saved. Add ${code} back later and the marks reappear.`)) return;
+    setListFor(g, l => l.filter(s => s.code !== code));
+  }
+  function rename(code) {
+    const cur = list.find(s => s.code === code);
+    const next = prompt(`Display name for "${code}" in Grade ${g}:`, cur.label);
+    if (next === null) return;
+    setListFor(g, l => l.map(s => s.code === code ? { ...s, label: next.trim() || s.label } : s));
+  }
+  function addSubject() {
+    const code = draft.code.trim().toUpperCase().replace(/\s+/g, "_");
     const label = draft.label.trim() || code;
     if (!code) return;
-    if (list.some(s=>s.code===code)) { alert(`${code} is already in this list.`); return; }
+    if (list.some(s => s.code === code)) { alert(`${code} is already in Grade ${g}.`); return; }
     const loginUser = (draft.loginUser || "").trim().toLowerCase();
     if (loginUser) {
       if (!/^[a-z0-9._-]+$/.test(loginUser)) { alert("Login username can only use letters, numbers, dot, dash or underscore (no spaces)."); return; }
       if (USERS[loginUser] || pendingLogins.some(p => p.username === loginUser)) { alert(`The username "${loginUser}" is already taken.`); return; }
     }
-    setList([...list, { code, label }]);
-    if (loginUser) {
-      setPendingLogins(p => [...p, { username: loginUser, password: (draft.loginPass || "").trim() || "2026",
-        name: `${label} Teacher`, subject: code, band }]);
-    }
+    setListFor(g, l => [...l, { code, label }]);
+    if (loginUser) setPendingLogins(p => [...p, { username: loginUser, password: (draft.loginPass || "").trim() || "2026", name: `${label} Teacher`, subject: code, grade: g }]);
     setDraft({ code: "", label: "", loginUser: "", loginPass: "" });
+  }
+  function applyToBand() {
+    const band = isLowerGrade(g) ? ["1","2","3"] : ["4","5","6"];
+    if (!window.confirm(`Copy Grade ${g}'s subject list to Grades ${band.join(", ")}?`)) return;
+    band.forEach(b => { if (b !== g) setListFor(b, () => list.map(s => ({ ...s }))); });
+  }
+  function resetGrade() {
+    if (!window.confirm(`Put Grade ${g} back on the standard ${isLowerGrade(g) ? "Lower" : "Upper"} Primary subject list?`)) return;
+    setListFor(g, () => bandDefault(g).map(s => ({ ...s })));
+  }
+
+  // Look through saved marks for subjects of this grade that still hold marks
+  // but are not on the grade's list (e.g. one that was removed).
+  async function scanSaved(grade) {
+    const gr = grade || g;
+    setBusy(true); setScanMsg("");
+    try {
+      await loadDB(true);
+      const db = DB_CACHE || {};
+      const codes = {};
+      Object.keys(db).forEach(k => {
+        if (!k.startsWith(`sision_scores_${gr}_`) || !Array.isArray(db[k])) return;
+        db[k].forEach(l => Object.entries(l.scores || {}).forEach(([sub, v]) => {
+          if (v !== "" && v !== null && v !== undefined) codes[sub] = (codes[sub] || 0) + 1;
+        }));
+      });
+      const have = new Set((lists[gr] || []).map(s => s.code));
+      const missing = Object.keys(codes).filter(c => !have.has(c));
+      setFound(missing.map(c => ({ code: c, n: codes[c] })));
+      setScanMsg(missing.length ? "" : `No hidden subjects with marks found for Grade ${gr}.`);
+    } finally { setBusy(false); }
+  }
+  function labelGuess(code) {
+    const all = [...DEFAULT_SUBJECTS_LOWER, ...DEFAULT_SUBJECTS_UPPER, ...lower, ...upper, ...Object.values(gradeCfg || {}).flat()];
+    const hit = all.find(s => s.code === code);
+    return hit ? hit.label : code;
+  }
+  function addBack(code) {
+    setListFor(g, l => l.some(s => s.code === code) ? l : [...l, { code, label: labelGuess(code) }]);
+    setFound(f => f.filter(x => x.code !== code));
+  }
+
+  // Merge marks from an OLDER db.json into the current data. Only fills in marks
+  // that are currently missing/empty -- it never overwrites a mark that exists now
+  // and never adds learners.
+  async function recoverFromBackup(file) {
+    if (!file) return;
+    setBusy(true); setRecoverMsg("");
+    try {
+      let old;
+      try { old = JSON.parse(await file.text()); } catch { setRecoverMsg("That file is not a valid db.json."); return; }
+      let stats = { filled: 0, keys: 0, codes: [] };
+      const ok = await saveSharedMany(db => {
+        stats = { filled: 0, keys: 0, codes: new Set() };
+        Object.keys(old).forEach(k => {
+          if (!k.startsWith("sision_scores_") || !Array.isArray(old[k])) return;
+          const cur = db[k];
+          if (!Array.isArray(cur) || !cur.length) {
+            db[k] = old[k]; stats.keys++;
+            old[k].forEach(l => Object.entries(l.scores || {}).forEach(([s, v]) => { if (v !== "") { stats.filled++; stats.codes.add(s); } }));
+            return;
+          }
+          const byName = {};
+          cur.forEach(l => { byName[l.name] = l; });
+          old[k].forEach(ol => {
+            const cl = byName[ol.name];
+            if (!cl) return;
+            cl.scores = cl.scores || {};
+            Object.entries(ol.scores || {}).forEach(([sub, val]) => {
+              const hasOld = val !== undefined && val !== null && String(val) !== "";
+              const c = cl.scores[sub];
+              if (hasOld && (c === undefined || c === null || c === "")) { cl.scores[sub] = val; stats.filled++; stats.codes.add(sub); }
+            });
+          });
+        });
+        if (stats.filled === 0) return false;
+      });
+      if (ok) {
+        setRecoverMsg(`Recovered ${stats.filled} mark(s). Subjects restored: ${[...stats.codes].join(", ")}. Now tap "Find hidden subjects" below and add them back to the grade.`);
+        await scanSaved(g);
+      } else if (stats.filled === 0) {
+        setRecoverMsg("Nothing to recover -- that file has no marks that are missing from your current data.");
+      } else {
+        setRecoverMsg(`Could not save: ${LAST_SYNC_ERROR || "nothing new found in that file."}`);
+      }
+    } finally { setBusy(false); }
   }
 
   async function save() {
     if (!GH) { alert("Not connected to GitHub. Connect first so this is shared with everyone."); return; }
     setSaving(true);
     try {
-      const okL = await saveShared(subjectsConfigKey("lower"), lowerList);
-      const okU = await saveShared(subjectsConfigKey("upper"), upperList);
-      if (okL && okU) {
-        onSaveLower(lowerList);
-        onSaveUpper(upperList);
-        setSaved(true);
-        setTimeout(()=>setSaved(false), 2000);
-      } else {
-        alert(`Save failed: ${LAST_SYNC_ERROR || "Unknown error."}`);
-      }
-    } finally {
-      setSaving(false);
-    }
+      const newCfg = { ...(gradeCfg || {}) };
+      const logins = pendingLogins.filter(p => lists[p.grade].some(s => s.code === p.subject));
+      let clash = [];
+      const ok = await saveSharedMany(db => {
+        GR.forEach(gr => {
+          if (!touched[gr]) return;
+          const same = JSON.stringify(lists[gr]) === JSON.stringify(bandDefault(gr));
+          db[subjectsGradeKey(gr)] = same ? [] : lists[gr];   // [] = use the standard list
+          if (same) delete newCfg[gr]; else newCfg[gr] = lists[gr];
+        });
+        if (logins.length) {
+          const existing = db.customUsers || {};
+          clash = logins.filter(p => existing[p.username] || USERS[p.username]).map(p => p.username);
+          if (clash.length) return false;
+          const merged = { ...existing };
+          logins.forEach(p => {
+            merged[p.username] = { password: p.password, role: "subjectTeacher", name: p.name,
+              subjects: [p.subject], classes: ALL_CLASSES.filter(c => c.grade === p.grade) };
+          });
+          db.customUsers = merged;
+        }
+      });
+      if (clash.length) { alert(`These login usernames already exist: ${clash.join(", ")}. Remove them or choose another username.`); return; }
+      if (!ok) { alert(`Save failed: ${LAST_SYNC_ERROR || "Unknown error."}`); return; }
+      onSaveGrade(newCfg);
+      setPendingLogins([]);
+      setTouched({});
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } finally { setSaving(false); }
   }
+
+  const pendingHere = pendingLogins.filter(p => p.grade === g);
 
   return (
     <div style={{ background: "#eef2ff", minHeight: "100vh", padding: "16px 12px" }}>
       <div style={bx}>
-        <div style={{ fontSize: 21, fontWeight: 800, marginBottom: 2 }}>📚 Manage Subjects & Classes</div>
-        <p style={{ fontSize: 13, color: "#555", margin: "4px 0 18px" }}>
-          Add, rename, or remove the subjects taught at each band. Every report card, class list,
-          and results analysis automatically uses whichever subjects are listed here.
+        <div style={{ fontSize: 21, fontWeight: 800, marginBottom: 2 }}>Manage Subjects by Class</div>
+        <p style={{ fontSize: 13, color: "#555", margin: "4px 0 14px" }}>
+          Every grade has its own subjects. Pick a grade, then add, rename or hide subjects for that grade only.
+          Hiding a subject <b>never deletes its marks</b>.
         </p>
-        {!GH && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 12 }}>Not connected to GitHub — connect first so changes can be shared with everyone.</div>}
+        {!GH && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 12 }}>Not connected to GitHub -- connect first so changes can be shared with everyone.</div>}
 
-        {renderList(lowerList, setLowerList, "Lower Primary — Grades 1–3")}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-          <input style={inp} value={newLower.code} placeholder="Code, e.g. MUSIC" onChange={e=>setNewLower(d=>({...d,code:e.target.value}))} />
-          <input style={inp} value={newLower.label} placeholder="Full name, e.g. Music" onChange={e=>setNewLower(d=>({...d,label:e.target.value}))} />
-          <button style={btn("#16a34a")} onClick={()=>addSubject("lower")}>+ Add</button>
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: -12, marginBottom: 20 }}>
-          <input style={inp} autoCapitalize="none" value={newLower.loginUser} placeholder="Login username (optional), e.g. music" onChange={e=>setNewLower(d=>({...d,loginUser:e.target.value}))} />
-          <input style={inp} value={newLower.loginPass} placeholder="Password (default 2026)" onChange={e=>setNewLower(d=>({...d,loginPass:e.target.value}))} />
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+          {GR.map(x => (
+            <span key={x} style={gradeChip(g === x)} onClick={() => { setG(x); setFound([]); setScanMsg(""); }}>
+              Grade {x}{touched[x] ? " *" : ""}
+            </span>
+          ))}
         </div>
 
-        {renderList(upperList, setUpperList, "Upper Primary — Grades 4–6")}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-          <input style={inp} value={newUpper.code} placeholder="Code, e.g. MUSIC" onChange={e=>setNewUpper(d=>({...d,code:e.target.value}))} />
-          <input style={inp} value={newUpper.label} placeholder="Full name, e.g. Music" onChange={e=>setNewUpper(d=>({...d,label:e.target.value}))} />
-          <button style={btn("#16a34a")} onClick={()=>addSubject("upper")}>+ Add</button>
+        <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>Grade {g} subjects{gradeStreams}</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+          {list.map(s => (
+            <div key={s.code} style={{ display: "flex", alignItems: "center", gap: 6, background: "#f3f4f6", borderRadius: 20, padding: "5px 6px 5px 12px", fontSize: 13 }}>
+              <span style={{ fontWeight: 700 }}>{s.code}</span>
+              <span style={{ color: "#666", fontSize: 11 }}>({s.label})</span>
+              <button onClick={() => rename(s.code)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 12 }} title="Rename">Edit</button>
+              <button onClick={() => remove(s.code)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 12, color: "#c0392b" }} title="Hide">Hide</button>
+            </div>
+          ))}
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: -12, marginBottom: 20 }}>
-          <input style={inp} autoCapitalize="none" value={newUpper.loginUser} placeholder="Login username (optional), e.g. science" onChange={e=>setNewUpper(d=>({...d,loginUser:e.target.value}))} />
-          <input style={inp} value={newUpper.loginPass} placeholder="Password (default 2026)" onChange={e=>setNewUpper(d=>({...d,loginPass:e.target.value}))} />
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <input style={inp} value={draft.code} placeholder="Code, e.g. SCIENCE" onChange={e => setDraft(d => ({ ...d, code: e.target.value }))} />
+          <input style={inp} value={draft.label} placeholder="Full name, e.g. Science" onChange={e => setDraft(d => ({ ...d, label: e.target.value }))} />
+          <button style={btn("#16a34a")} onClick={addSubject}>+ Add</button>
         </div>
-        {pendingLogins.length > 0 && (
-          <div style={{ background:"#f0fdf4", border:"1px solid #86efac", borderRadius:8, padding:"10px 14px", marginBottom:16, fontSize:12, color:"#166534" }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <input style={inp} autoCapitalize="none" value={draft.loginUser} placeholder="Login username (optional)" onChange={e => setDraft(d => ({ ...d, loginUser: e.target.value }))} />
+          <input style={inp} value={draft.loginPass} placeholder="Password (default 2026)" onChange={e => setDraft(d => ({ ...d, loginPass: e.target.value }))} />
+        </div>
+        {pendingHere.length > 0 && (
+          <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: "#166534" }}>
             <b>Logins that will be created when you tap Save:</b>
-            {pendingLogins.map(p => (
+            {pendingHere.map(p => (
               <div key={p.username} style={{ marginTop: 4 }}>
                 {p.username} / {p.password} -- {p.subject}
-                <button onClick={()=>setPendingLogins(l=>l.filter(x=>x.username!==p.username))} style={{ border:"none", background:"none", color:"#c0392b", cursor:"pointer", fontSize:12 }}> remove</button>
+                <button onClick={() => setPendingLogins(l => l.filter(x => x.username !== p.username))} style={{ border: "none", background: "none", color: "#c0392b", cursor: "pointer", fontSize: 12 }}> remove</button>
               </div>
             ))}
           </div>
         )}
 
-        <div style={{ background:"#f8f9fb", border:"1px solid #e5e7eb", borderRadius:8, padding:"12px 14px", marginBottom:16, fontSize:12, color:"#555" }}>
-          <b>About classes:</b> Grade 6 is currently split into two streams
-          ({grade6Mode==="split" ? "East & West" : "a single class"}). Whether Grade 6 is split, and
-          the East/West names themselves, are changed from the <b>🔄 Re-run Year Setup</b> wizard on
-          the home screen — that keeps them in sync with each year's promotion and stream records.
-          Tip: type a login username next to a new subject to create its teacher login at the same time (it also shows in Manage Team). Adding or removing a subject here does not delete any marks already saved under a subject
-          you remove — it just stops appearing on future entry screens and reports.
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
+          <button style={smallBtn("#6b7280")} onClick={applyToBand}>Copy to all {isLowerGrade(g) ? "Lower (1-3)" : "Upper (4-6)"} grades</button>
+          <button style={smallBtn("#6b7280")} onClick={resetGrade}>Use standard list</button>
         </div>
 
-        {saved && <div style={{ color: "#16a34a", fontSize: 12, marginBottom: 8 }}>✅ Saved!</div>}
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          <button style={btn("#1a56db")} onClick={save} disabled={saving}>{saving ? "Saving…" : "💾 Save Subjects"}</button>
-          <button style={btn("#555")} onClick={onDone}>← Back</button>
+        {/* ---- bring back hidden subjects ---- */}
+        <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>Bring back a hidden subject</div>
+          <div style={{ fontSize: 12, color: "#555", marginBottom: 8 }}>Finds subjects in Grade {g} that still have saved marks but are not on the list above.</div>
+          <button style={smallBtn("#d97706")} onClick={() => scanSaved(g)} disabled={busy}>{busy ? "Working..." : "Find hidden subjects"}</button>
+          {found.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+              {found.map(f => (
+                <span key={f.code} onClick={() => addBack(f.code)} style={{ padding: "6px 12px", borderRadius: 16, background: "#16a34a", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  + {f.code} ({f.n} marks)
+                </span>
+              ))}
+            </div>
+          )}
+          {scanMsg && <div style={{ fontSize: 12, color: "#555", marginTop: 8 }}>{scanMsg}</div>}
+        </div>
+
+        {/* ---- recover from an old backup ---- */}
+        <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 10, padding: "12px 14px", marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>Recover marks from an older db.json</div>
+          <div style={{ fontSize: 12, color: "#555", marginBottom: 8 }}>
+            Pick a db.json from before the subject was removed. Only marks that are missing now are filled in --
+            nothing existing is overwritten.
+          </div>
+          <input type="file" accept=".json,application/json" disabled={busy} onChange={e => { recoverFromBackup(e.target.files && e.target.files[0]); e.target.value = ""; }} style={{ fontSize: 12 }} />
+          {recoverMsg && <div style={{ fontSize: 12, color: "#7f1d1d", marginTop: 8 }}>{recoverMsg}</div>}
+        </div>
+
+        {saved && <div style={{ color: "#16a34a", fontSize: 12, marginBottom: 8 }}>Saved!</div>}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button style={btn("#1a56db")} onClick={save} disabled={saving}>{saving ? "Saving..." : "Save Subjects"}</button>
+          <button style={btn("#555")} onClick={onDone}>Back</button>
+        </div>
+        <div style={{ fontSize: 11, color: "#888", marginTop: 12 }}>
+          Grade 6 East/West names and splitting are still set in the Re-run Year Setup wizard. A grade marked * has unsaved changes.
         </div>
       </div>
     </div>
@@ -1058,7 +1212,7 @@ function TeacherAdminScreen({ onDone }) {
   // SCIENCE / AGRICULTURE show up here as soon as they are added.
   const subjectOptions = (() => {
     const m = {};
-    [...(SUBJECTS_LOWER_CFG || []), ...(SUBJECTS_UPPER_CFG || [])].forEach(s => { if (!m[s.code]) m[s.code] = s.label; });
+    [...(SUBJECTS_LOWER_CFG || []), ...(SUBJECTS_UPPER_CFG || []), ...Object.values(SUBJECTS_GRADE_CFG || {}).flat()].forEach(s => { if (!m[s.code]) m[s.code] = s.label; });
     return Object.entries(m).map(([code, label]) => ({ code, label }));
   })();
   const classId = c => `${c.grade}|${c.stream || ""}`;
@@ -1296,11 +1450,20 @@ const DEFAULT_SUBJECTS_UPPER = [
 let SUBJECTS_LOWER_CFG = DEFAULT_SUBJECTS_LOWER;
 let SUBJECTS_UPPER_CFG = DEFAULT_SUBJECTS_UPPER;
 function subjectsConfigKey(band) { return band==="lower" ? "sision_subjects_lower" : "sision_subjects_upper"; }
+// Each grade can have its OWN subject list ("sision_subjects_grade_<n>"). A grade
+// with no list of its own uses its band's list (Lower 1-3 / Upper 4-6).
+let SUBJECTS_GRADE_CFG = {};
+function subjectsGradeKey(g) { return "sision_subjects_grade_" + g; }
+function effectiveSubjectList(g) {
+  const o = SUBJECTS_GRADE_CFG[String(g)];
+  if (Array.isArray(o) && o.length) return o;
+  return ["1","2","3"].includes(String(g)) ? SUBJECTS_LOWER_CFG : SUBJECTS_UPPER_CFG;
+}
 function getSubjectsForGrade(g) {
-  return (["1","2","3"].includes(String(g)) ? SUBJECTS_LOWER_CFG : SUBJECTS_UPPER_CFG).map(s=>s.code);
+  return effectiveSubjectList(g).map(s=>s.code);
 }
 function getLabelsForGrade(g) {
-  const cfg = ["1","2","3"].includes(String(g)) ? SUBJECTS_LOWER_CFG : SUBJECTS_UPPER_CFG;
+  const cfg = effectiveSubjectList(g);
   const labels = {};
   cfg.forEach(s=>{ labels[s.code] = s.label; });
   return labels;
@@ -2736,6 +2899,7 @@ function App() {
   const [gradingCfg, setGradingCfg] = useState(null);
   const [subjectsLowerCfg, setSubjectsLowerCfg] = useState(null);
   const [subjectsUpperCfg, setSubjectsUpperCfg] = useState(null);
+  const [subjectsGradeCfg, setSubjectsGradeCfg] = useState({});
   const [showGrading, setShowGrading] = useState(false);
   const [showManageSubjects, setShowManageSubjects] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
@@ -2748,6 +2912,12 @@ function App() {
       if (sl && Array.isArray(sl) && sl.length) setSubjectsLowerCfg(sl);
       const su = await loadShared(subjectsConfigKey("upper"), null);
       if (su && Array.isArray(su) && su.length) setSubjectsUpperCfg(su);
+      const gm = {};
+      for (const gn of ["1","2","3","4","5","6"]) {
+        const v = await loadShared(subjectsGradeKey(gn), null);
+        if (Array.isArray(v) && v.length) gm[gn] = v;
+      }
+      setSubjectsGradeCfg(gm);
     })();
   }, []);
 
@@ -2761,6 +2931,7 @@ function App() {
     GRADES = gradingCfg || DEFAULT_GRADES;
     SUBJECTS_LOWER_CFG = subjectsLowerCfg || DEFAULT_SUBJECTS_LOWER;
     SUBJECTS_UPPER_CFG = subjectsUpperCfg || DEFAULT_SUBJECTS_UPPER;
+    SUBJECTS_GRADE_CFG = subjectsGradeCfg || {};
     const isSubjectTeacherView = userSession && userSession.role === "subjectTeacher" && subjectClass;
     const activeGrade = isSubjectTeacherView ? subjectClass.grade : grade;
     SUBJECTS = getSubjectsForGrade(activeGrade);
@@ -2790,8 +2961,10 @@ function App() {
   }
 
   function proceedAfterClass(entry, cls) {
-    if (entry.subjects.length === 1) {
-      setSubjectChoice(entry.subjects[0]);
+    const inGrade = entry.subjects.filter(s => getSubjectsForGrade(cls.grade).includes(s));
+    const use = inGrade.length ? inGrade : entry.subjects;
+    if (use.length === 1) {
+      setSubjectChoice(use[0]);
       setPage("subjectEntry");
     } else {
       setPage("subjectSubjectPick");
@@ -3827,9 +4000,9 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
   if (showManageSubjects) return <ManageSubjectsScreen
     lower={subjectsLowerCfg || DEFAULT_SUBJECTS_LOWER}
     upper={subjectsUpperCfg || DEFAULT_SUBJECTS_UPPER}
+    gradeCfg={subjectsGradeCfg}
     grade6Mode={grade6Mode}
-    onSaveLower={(l) => setSubjectsLowerCfg(l)}
-    onSaveUpper={(u) => setSubjectsUpperCfg(u)}
+    onSaveGrade={(m) => setSubjectsGradeCfg(m)}
     onDone={() => setShowManageSubjects(false)}
   />;
 
@@ -4010,7 +4183,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
         <div style={S.homeCard}>
           <h2 style={S.cardTitle}>Which subject are you entering marks for?</h2>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {subjectSession.subjects.map((s,i)=>(
+            {(() => { const g = getSubjectsForGrade(subjectClass.grade).filter(Boolean); const f = subjectSession.subjects.filter(s => g.includes(s)); return f.length ? f : subjectSession.subjects; })().map((s,i)=>(
               <button key={i} style={S.btn} onClick={()=>{ setSubjectChoice(s); setPage("subjectEntry"); }}>
                 {s}
               </button>
