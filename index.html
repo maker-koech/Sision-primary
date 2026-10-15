@@ -366,6 +366,8 @@ function resolveGHConfig() {
 let GH = resolveGHConfig();
 let DB_CACHE = null;
 let DB_SHA = null;
+let LAST_LOAD_OK = false;   // true only when the most recent read of db.json really succeeded
+let DB_KEYCOUNT = 0;        // number of top-level keys at the last successful read
 
 // Module-level cache of the editable school name/county/motto, so any
 // component (login screen, printable class list, report card, PDF export)
@@ -409,17 +411,30 @@ async function loadDB(force) {
   if (!GH) return {};
   try {
     const res = await fetchWithTimeout(dbUrl(true), { headers: ghH(), cache: "no-store" });
-    if (res.status === 404) { DB_CACHE = {}; DB_SHA = null; return {}; }
+    if (res.status === 404) { DB_CACHE = {}; DB_SHA = null; DB_KEYCOUNT = 0; LAST_LOAD_OK = true; return {}; }
     if (res.status === 401 || res.status === 403) {
+      LAST_LOAD_OK = false;
       LAST_SYNC_ERROR = "GitHub rejected the request (invalid token, or rate limit reached). Check the Setup screen's GitHub token.";
       return DB_CACHE || {};
     }
-    if (!res.ok) { LAST_SYNC_ERROR = `GitHub returned an error (status ${res.status}) while loading the latest data.`; return DB_CACHE || {}; }
+    if (!res.ok) { LAST_LOAD_OK = false; LAST_SYNC_ERROR = `GitHub returned an error (status ${res.status}) while loading the latest data.`; return DB_CACHE || {}; }
     const j = await res.json();
-    DB_SHA = j.sha;
-    DB_CACHE = JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g, "")))));
+    let text;
+    if (j.content && j.encoding === "base64") {
+      text = decodeURIComponent(escape(atob(j.content.replace(/\n/g, ""))));
+    } else {
+      // GitHub sends no inline content for files over 1 MB - fetch the raw blob instead.
+      const br = await fetchWithTimeout(`https://api.github.com/repos/${GH.owner}/${GH.repo}/git/blobs/${j.sha}`,
+        { headers: { ...ghH(), Accept: "application/vnd.github.raw" }, cache: "no-store" }, 30000);
+      if (!br.ok) throw new Error("blob " + br.status);
+      text = await br.text();
+    }
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("bad db");
+    DB_SHA = j.sha; DB_CACHE = parsed; DB_KEYCOUNT = Object.keys(parsed).length; LAST_LOAD_OK = true;
     return DB_CACHE;
   } catch (err) {
+    LAST_LOAD_OK = false;
     LAST_SYNC_ERROR = (err && err.name === "AbortError")
       ? "The connection to GitHub timed out. Your network may be slow or unstable right now."
       : "Could not reach GitHub. Check that you have an active internet connection.";
@@ -427,8 +442,12 @@ async function loadDB(force) {
   }
 }
 
-async function saveDB(db) {
+async function saveDB(db, force) {
   if (!GH) { LAST_SYNC_ERROR = "Not connected to GitHub."; return false; }
+  // Never write after a failed read (the app would be saving on top of data it could not see).
+  if (!LAST_LOAD_OK) { LAST_SYNC_ERROR = "Could not read the latest data from GitHub, so nothing was saved (this protects your existing marks). Check your connection and try again."; return false; }
+  // Never let a save quietly lose a large share of the database.
+  if (!force && DB_KEYCOUNT > 6 && Object.keys(db).length < DB_KEYCOUNT * 0.8) { LAST_SYNC_ERROR = "Save blocked: it would remove a large part of the saved data."; return false; }
   try {
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(db))));
     const body = { message: "Update marks", content, branch: "main" };
@@ -446,6 +465,7 @@ async function saveDB(db) {
     const j = await res.json();
     DB_SHA = j.content.sha;
     DB_CACHE = db;
+    DB_KEYCOUNT = Object.keys(db).length;
     return true;
   } catch (err) {
     LAST_SYNC_ERROR = (err && err.name === "AbortError")
@@ -453,6 +473,26 @@ async function saveDB(db) {
       : "Could not reach GitHub while saving. Check that you have an active internet connection.";
     return false;
   }
+}
+
+// Saves a dated copy of db.json into the repo's /backups folder (used before risky bulk changes).
+async function createBackup(label) {
+  if (!GH) return null;
+  try {
+    const db = await loadDB(true);
+    if (!LAST_LOAD_OK || !db || !Object.keys(db).length) return null;
+    const d = new Date(), p2 = x => String(x).padStart(2, "0");
+    const stamp = d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()) + "_" + p2(d.getHours()) + p2(d.getMinutes());
+    const name = `db-${stamp}-${label || "manual"}.json`;
+    const url = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/backups/${name}`;
+    let sha = null;
+    const g = await fetchWithTimeout(url, { headers: ghH(), cache: "no-store" });
+    if (g.ok) sha = (await g.json()).sha; else if (g.status !== 404) return null;
+    const body = { message: "Backup " + name, content: btoa(unescape(encodeURIComponent(JSON.stringify(db)))), branch: "main" };
+    if (sha) body.sha = sha;
+    const r = await fetchWithTimeout(url, { method: "PUT", headers: ghH(), body: JSON.stringify(body) }, 30000);
+    return r.ok ? name : null;
+  } catch { return null; }
 }
 
 async function loadShared(key, fb) {
@@ -502,10 +542,10 @@ async function saveSubjectScores(key, subject, updatesByName, rosterNames, retri
     if (attempt > 0) await new Promise(r => setTimeout(r, 600 * attempt));
     await loadDB(true);
     const db = DB_CACHE || {};
-    let arr = db[key];
-    if (!arr || !arr.length) {
-      arr = (rosterNames || []).map(n => ({ name: n, scores: blankScores() }));
-    }
+    let arr = Array.isArray(db[key]) ? db[key].slice() : [];
+    // Any roster learner missing from the marks list is added, so no learner's marks are dropped.
+    const have = new Set(arr.map(l => l.name));
+    (rosterNames || []).forEach(nm => { if (!have.has(nm)) { arr.push({ name: nm, scores: blankScores() }); have.add(nm); } });
     arr = arr.map(l => {
       if (Object.prototype.hasOwnProperty.call(updatesByName, l.name)) {
         return { ...l, scores: { ...(l.scores || blankScores()), [subject]: updatesByName[l.name] } };
@@ -1061,7 +1101,7 @@ function SetupScreen({ onDone }) {
       if (res.status === 401 || res.status === 403) { setStatus("badtoken"); return; }
       if (!res.ok) { setStatus("fail"); return; }
       GH = { token: t, owner: o, repo: r };
-      DB_CACHE = null; DB_SHA = null;
+      DB_CACHE = null; DB_SHA = null; LAST_LOAD_OK = false;
       localStorage.setItem("sision_gh", JSON.stringify(GH));
       setStatus("ok");
       setTimeout(onDone, 700);
@@ -1538,6 +1578,9 @@ function encourageRemark(subCode) {
   return `Aim to surpass ${better} in the next assessment.`;
 }
 
+// Highest points a single subject can earn on the CURRENT grading scale (4 for EE/ME/AE/BE).
+function maxGradePoints() { return Math.max(...GRADES.map(g => Number(g.points) || 0)) || 4; }
+
 function calcStats(scores) {
   const vals = SUBJECTS.map(s => Number(scores[s])).filter(v => !isNaN(v) && v > 0);
   const total = vals.reduce((a,b)=>a+b,0);
@@ -1798,14 +1841,19 @@ function YearAdvancementWizard({ fromYear, toYear, onDone, onSkip }) {
   }
 
   async function applyAdvancement() {
-    const pwd = window.prompt("This will promote learners to the next grade (Grade 6 will exit to Junior Secondary). Enter the promotion password to continue:");
+    const pwd = window.prompt("This will promote learners to the next grade (Grade 6 will exit to Junior Secondary).\n\nEnter the ADMINISTRATOR password to continue:");
     if (pwd === null) return; // cancelled
-    if (pwd.trim().toLowerCase() !== "sision") {
-      alert("Incorrect password. Promotion was NOT applied.");
+    let adminOk = false;
+    try { const all = await loadAllUsers(); adminOk = Object.values(all).some(e => e.role === "admin" && !e.disabled && e.password === pwd); } catch {}
+    if (!adminOk) {
+      alert("Incorrect administrator password. Promotion was NOT applied.");
       return;
     }
     setApplying(true);
     try {
+      // A full safety copy of the database is saved first; if that fails nothing is changed.
+      const safety = await createBackup("before-year-advancement");
+      if (!safety) { alert("Could not save a safety backup, so the promotion was NOT applied. Check your connection and try again."); setApplying(false); return; }
       // ── 1. Grade 6 → EXIT (moves on to Junior Secondary, a separate app) ──
       await saveShared(learnersKey("6","East"), []);
       await saveShared(learnersKey("6","West"), []);
@@ -2218,6 +2266,10 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
   const label = stream ? `Grade ${grade} ${stream}` : `Grade ${grade}`;
   const overallGrade = learner.total>0 ? getGrade(learner.avg) : null;
   const hasOverall = overallTotal>0;
+  // Stretch the subject table to fill the page: fewer subjects => taller rows (all in mm so it prints the same everywhere).
+  const nSub = SUBJECTS.length;
+  const rowH = Math.max(7, Math.min(15, 60 / nSub));
+  const big = nSub <= 5;
   return (
     <div className="report-card" data-name={learner.name} style={RC.page}>
       <div style={RC.header}>
@@ -2238,12 +2290,12 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
       <div style={RC.sectionTitle}>ACADEMIC PERFORMANCE</div>
       <table style={RC.table}>
         <thead>
-          <tr>
-            <th style={RC.th}>Subject</th>
-            <th style={RC.thC}>Score (%)</th>
-            <th style={RC.thC}>CBC Level</th>
-            <th style={RC.thC}>Points</th>
-            <th style={{...RC.thC}}>Grade Rank</th>
+          <tr style={{height:"10mm"}}>
+            <th style={{...RC.th,fontSize:12}}>Subject</th>
+            <th style={{...RC.thC,fontSize:12}}>Score (%)</th>
+            <th style={{...RC.thC,fontSize:12}}>CBC Level</th>
+            <th style={{...RC.thC,fontSize:12}}>Points</th>
+            <th style={{...RC.thC,fontSize:12}}>Grade Rank</th>
           </tr>
         </thead>
         <tbody>
@@ -2251,12 +2303,12 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
             const g=getGrade(learner.scores[sub]);
             const sRank = subjectRanks && subjectRanks[sub] ? subjectRanks[sub] : "–";
             return (
-              <tr key={sub} style={{background:i%2===0?"#fff":"#f5f5f5"}}>
-                <td style={RC.td}><b>{SUBJECT_LABELS[sub]||sub}</b></td>
-                <td style={{...RC.tdC,fontWeight:800,fontSize:14}}>{learner.scores[sub]||"–"}</td>
-                <td style={RC.tdC}>{g?<span style={RC.codeBadge}>{g.sub}</span>:"–"}</td>
-                <td style={{...RC.tdC,fontWeight:700}}>{g?.points||"–"}</td>
-                <td style={{...RC.tdC,fontWeight:700,color:"#1d4ed8"}}>{sRank}</td>
+              <tr key={sub} style={{background:i%2===0?"#fff":"#f5f5f5",height:rowH+"mm"}}>
+                <td style={{...RC.td,fontSize:big?14:12.5}}><b>{SUBJECT_LABELS[sub]||sub}</b></td>
+                <td style={{...RC.tdC,fontWeight:800,fontSize:big?19:15}}>{learner.scores[sub]||"–"}</td>
+                <td style={RC.tdC}>{g?<span style={{...RC.codeBadge,fontSize:big?14:12,padding:"2px 7px"}}>{g.sub}</span>:"–"}</td>
+                <td style={{...RC.tdC,fontWeight:700,fontSize:big?14:12.5}}>{g?.points||"–"}</td>
+                <td style={{...RC.tdC,fontWeight:700,color:"#1d4ed8",fontSize:big?14:12.5}}>{sRank}</td>
               </tr>
             );
           })}
@@ -2265,7 +2317,7 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
 
       <div style={RC.summaryBox}>
         <div style={RC.summaryItem}><div style={RC.sumLabel}>Total Score</div><div style={RC.sumVal}>{learner.total||"–"}/{SUBJECTS.length*100}</div></div>
-        <div style={RC.summaryItem}><div style={RC.sumLabel}>Total Points</div><div style={RC.sumVal}>{learner.points||"–"}/{SUBJECTS.length*8}</div></div>
+        <div style={RC.summaryItem}><div style={RC.sumLabel}>Total Points</div><div style={RC.sumVal}>{learner.points||"–"}/{SUBJECTS.length*maxGradePoints()}</div></div>
         <div style={RC.summaryItem}><div style={RC.sumLabel}>Average</div><div style={RC.sumVal}>{learner.total?learner.avg+"%":"–"}</div></div>
         <div style={RC.summaryItem}>
           <div style={RC.sumLabel}>Class Position</div>
@@ -2295,9 +2347,9 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
         <div style={RC.gradingKey}>
           <div style={RC.keyTitle}>GRADING KEY</div>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:9}}>
-            <thead><tr style={{background:"#fff",color:"#000",borderBottom:"2px solid #000"}}><th style={RC.kth}>Code</th><th style={RC.kth}>Range</th><th style={RC.kth}>Pts</th></tr></thead>
+            <thead><tr style={{background:"#fff",color:"#000",borderBottom:"2px solid #000",height:"7.5mm"}}><th style={RC.kth}>Code</th><th style={RC.kth}>Range</th><th style={RC.kth}>Pts</th></tr></thead>
             <tbody>{GRADES.map(g=>(
-              <tr key={g.sub}>
+              <tr key={g.sub} style={{height:"7.5mm"}}>
                 <td style={{...RC.ktd,fontWeight:700}}>{g.sub}</td>
                 <td style={RC.ktd}>{g.min}–{g.max}%</td>
                 <td style={RC.ktd}>{g.points}</td>
@@ -3821,7 +3873,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
       startY: y,
       body: [[
         `Total: ${learner.total||0}/${SUBJECTS.length*100}`,
-        `Points: ${learner.points||0}/${SUBJECTS.length*8}`,
+        `Points: ${learner.points||0}/${SUBJECTS.length*maxGradePoints()}`,
         `Average: ${learner.total?learner.avg:0}%`,
         `Position: ${learner.total?learner.rank:"-"}/${totalInClass}`,
         `Band: ${og?og.sub:"-"}`
@@ -4583,35 +4635,35 @@ const S = {
 
 const RC = {
   page:        {background:"#fff",color:"#000",width:"190mm",minHeight:"265mm",margin:"0 auto 30px",padding:"10mm 12mm",fontFamily:"Arial,sans-serif",fontSize:11,boxSizing:"border-box",border:"1px solid #888",display:"flex",flexDirection:"column"},
-  header:      {borderBottom:"3px solid #000",marginBottom:8,paddingBottom:7,textAlign:"center"},
-  schoolName:  {fontSize:20,fontWeight:900,letterSpacing:1,color:"#000"},
-  schoolSub:   {fontSize:10,color:"#444"},
-  reportTitle: {fontSize:12,fontWeight:700,marginTop:4,color:"#000"},
-  infoRow:     {display:"flex",gap:8,flexWrap:"wrap",background:"#f2f2f2",padding:"7px 10px",borderRadius:4,marginBottom:8,border:"1px solid #ccc"},
+  header:      {borderBottom:"3px solid #000",marginBottom:14,paddingBottom:12,textAlign:"center"},
+  schoolName:  {fontSize:25,fontWeight:900,letterSpacing:1,color:"#000"},
+  schoolSub:   {fontSize:11.5,color:"#444",marginTop:2},
+  reportTitle: {fontSize:14,fontWeight:700,marginTop:8,color:"#000"},
+  infoRow:     {display:"flex",gap:10,flexWrap:"wrap",background:"#f2f2f2",padding:"13px 12px",borderRadius:4,marginBottom:16,border:"1px solid #ccc"},
   infoBlock:   {display:"flex",gap:4,alignItems:"center",flex:1},
-  infoLabel:   {fontWeight:800,fontSize:9,color:"#444",textTransform:"uppercase"},
-  infoVal:     {fontWeight:700,fontSize:11,color:"#000"},
-  sectionTitle:{fontWeight:900,fontSize:10,letterSpacing:1,color:"#000",borderBottom:"2px solid #000",paddingBottom:2,marginBottom:5,textTransform:"uppercase"},
-  table:       {width:"100%",borderCollapse:"collapse",marginBottom:8},
+  infoLabel:   {fontWeight:800,fontSize:10.5,color:"#444",textTransform:"uppercase"},
+  infoVal:     {fontWeight:700,fontSize:13,color:"#000"},
+  sectionTitle:{fontWeight:900,fontSize:12,letterSpacing:1,color:"#000",borderBottom:"2px solid #000",paddingBottom:4,marginBottom:8,textTransform:"uppercase"},
+  table:       {width:"100%",borderCollapse:"collapse",marginBottom:16},
   th:          {background:"#fff",color:"#000",padding:"5px 7px",fontWeight:800,fontSize:10,textAlign:"left",border:"1px solid #000",borderBottom:"2px solid #000"},
   thC:         {background:"#fff",color:"#000",padding:"5px 7px",fontWeight:800,fontSize:10,textAlign:"center",border:"1px solid #000",borderBottom:"2px solid #000"},
   td:          {padding:"5px 7px",border:"1px solid #ddd",color:"#000"},
   tdC:         {padding:"5px 7px",border:"1px solid #ddd",textAlign:"center",color:"#000"},
   codeBadge:   {fontWeight:900,fontSize:11,color:"#000",border:"1.5px solid #000",borderRadius:3,padding:"1px 5px"},
-  summaryBox:  {display:"flex",border:"2px solid #000",overflow:"hidden",marginBottom:10},
-  summaryItem: {flex:1,padding:"7px 5px",textAlign:"center",borderRight:"1px solid #bbb"},
-  sumLabel:    {fontSize:8,color:"#555",textTransform:"uppercase",letterSpacing:0.5},
-  sumVal:      {fontSize:14,fontWeight:900,color:"#000"},
-  bottomRow:   {display:"flex",gap:10,marginBottom:8},
-  gradingKey:  {width:140,flexShrink:0},
-  keyTitle:    {fontWeight:900,fontSize:9,letterSpacing:0.5,color:"#000",borderBottom:"2px solid #000",paddingBottom:2,marginBottom:4,textTransform:"uppercase"},
-  kth:         {padding:"3px 5px",fontWeight:700,fontSize:8,textAlign:"center",border:"1px solid #000"},
-  ktd:         {padding:"3px 5px",textAlign:"center",fontSize:8,border:"1px solid #999",color:"#000"},
-  datesBox:    {flex:1,border:"1px solid #bbb",borderRadius:4,padding:"8px 10px"},
+  summaryBox:  {display:"flex",border:"2px solid #000",overflow:"hidden",marginBottom:18},
+  summaryItem: {flex:1,padding:"15px 5px",textAlign:"center",borderRight:"1px solid #bbb"},
+  sumLabel:    {fontSize:9.5,color:"#555",textTransform:"uppercase",letterSpacing:0.5,marginBottom:3},
+  sumVal:      {fontSize:19,fontWeight:900,color:"#000"},
+  bottomRow:   {display:"flex",gap:14,marginBottom:12},
+  gradingKey:  {width:210,flexShrink:0},
+  keyTitle:    {fontWeight:900,fontSize:11,letterSpacing:0.5,color:"#000",borderBottom:"2px solid #000",paddingBottom:3,marginBottom:6,textTransform:"uppercase"},
+  kth:         {padding:"3px 6px",fontWeight:800,fontSize:11,textAlign:"center",border:"1px solid #000"},
+  ktd:         {padding:"3px 6px",textAlign:"center",fontSize:12,border:"1px solid #999",color:"#000"},
+  datesBox:    {flex:1,border:"1px solid #bbb",borderRadius:4,padding:"12px 16px"},
   commentInline: {marginTop:6,paddingTop:6,borderTop:"1px dashed #999"},
   commentLabel: {fontSize:8,fontWeight:800,letterSpacing:0.5,color:"#333"},
   commentText: {fontSize:9.5,lineHeight:1.4,color:"#222",marginTop:2,fontStyle:"italic"},
-  datesLine:   {fontSize:10,color:"#000",marginBottom:6},
+  datesLine:   {fontSize:13,color:"#000",marginBottom:12},
   footer:      {textAlign:"center",fontSize:8,color:"#555",borderTop:"1px solid #bbb",paddingTop:5,marginTop:"auto"},
 };
 
