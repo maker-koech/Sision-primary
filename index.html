@@ -368,6 +368,7 @@ let DB_CACHE = null;
 let DB_SHA = null;
 let LAST_LOAD_OK = false;   // true only when the most recent read of db.json really succeeded
 let DB_KEYCOUNT = 0;        // number of top-level keys at the last successful read
+let DB_RAW = "";            // exact text of db.json at the last successful read (used for backups + shrink guard)
 
 // Module-level cache of the editable school name/county/motto, so any
 // component (login screen, printable class list, report card, PDF export)
@@ -411,7 +412,7 @@ async function loadDB(force) {
   if (!GH) return {};
   try {
     const res = await fetchWithTimeout(dbUrl(true), { headers: ghH(), cache: "no-store" });
-    if (res.status === 404) { DB_CACHE = {}; DB_SHA = null; DB_KEYCOUNT = 0; LAST_LOAD_OK = true; return {}; }
+    if (res.status === 404) { DB_CACHE = {}; DB_SHA = null; DB_KEYCOUNT = 0; LAST_LOAD_OK = true; DB_RAW = ""; return {}; }
     if (res.status === 401 || res.status === 403) {
       LAST_LOAD_OK = false;
       LAST_SYNC_ERROR = "GitHub rejected the request (invalid token, or rate limit reached). Check the Setup screen's GitHub token.";
@@ -431,7 +432,7 @@ async function loadDB(force) {
     }
     const parsed = JSON.parse(text);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("bad db");
-    DB_SHA = j.sha; DB_CACHE = parsed; DB_KEYCOUNT = Object.keys(parsed).length; LAST_LOAD_OK = true;
+    DB_SHA = j.sha; DB_CACHE = parsed; DB_KEYCOUNT = Object.keys(parsed).length; LAST_LOAD_OK = true; DB_RAW = text;
     return DB_CACHE;
   } catch (err) {
     LAST_LOAD_OK = false;
@@ -448,6 +449,18 @@ async function saveDB(db, force) {
   if (!LAST_LOAD_OK) { LAST_SYNC_ERROR = "Could not read the latest data from GitHub, so nothing was saved (this protects your existing marks). Check your connection and try again."; return false; }
   // Never let a save quietly lose a large share of the database.
   if (!force && DB_KEYCOUNT > 6 && Object.keys(db).length < DB_KEYCOUNT * 0.8) { LAST_SYNC_ERROR = "Save blocked: it would remove a large part of the saved data."; return false; }
+  // MARKS SHRINK GUARD: never let one save wipe out a large share of the saved marks.
+  if (!force && DB_RAW) {
+    try {
+      const before = countMarks(JSON.parse(DB_RAW)), after = countMarks(db);
+      if (before > 40 && after < before * 0.75) {
+        LAST_SYNC_ERROR = `Save blocked: it would erase ${before - after} saved marks (${before} -> ${after}). Nothing was changed. Download a backup from the Setup screen and tell the admin.`;
+        return false;
+      }
+    } catch {}
+  }
+  // Automatic safety copy of the data as it stood BEFORE this save (once per 4-hour slot).
+  await autoBackupIfDue();
   try {
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(db))));
     const body = { message: "Update marks", content, branch: "main" };
@@ -466,6 +479,7 @@ async function saveDB(db, force) {
     DB_SHA = j.content.sha;
     DB_CACHE = db;
     DB_KEYCOUNT = Object.keys(db).length;
+    try { DB_RAW = JSON.stringify(db); } catch {}
     return true;
   } catch (err) {
     LAST_SYNC_ERROR = (err && err.name === "AbortError")
@@ -493,6 +507,78 @@ async function createBackup(label) {
     const r = await fetchWithTimeout(url, { method: "PUT", headers: ghH(), body: JSON.stringify(body) }, 30000);
     return r.ok ? name : null;
   } catch { return null; }
+}
+
+// Number of non-empty mark cells across every sision_scores_* list.
+function countMarks(db) {
+  let n = 0;
+  Object.keys(db || {}).forEach(k => {
+    if (!k.startsWith("sision_scores_") || !Array.isArray(db[k])) return;
+    db[k].forEach(l => Object.values((l && l.scores) || {}).forEach(v => { if (v !== "" && v !== null && v !== undefined) n++; }));
+  });
+  return n;
+}
+
+// Automatic backup into /backups, at most once per 4-hour slot, taken from the
+// exact data as it stood before the save about to happen. Never overwrites an
+// existing backup file and never blocks the save if it fails.
+async function autoBackupIfDue() {
+  try {
+    if (!GH || !DB_RAW) return;
+    const parsed = JSON.parse(DB_RAW);
+    if (!parsed || !Object.keys(parsed).length) return;
+    const d = new Date(), p2 = x => String(x).padStart(2, "0");
+    const tag = d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()) + "_slot" + Math.floor(d.getHours() / 4);
+    const flagKey = "sision_auto_backup_" + GH.owner + "_" + GH.repo;
+    if (localStorage.getItem(flagKey) === tag) return;
+    const name = `db-${tag}-auto.json`;
+    const url = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/backups/${name}`;
+    const g = await fetchWithTimeout(url + "?_=" + Date.now(), { headers: ghH(), cache: "no-store" }, 10000);
+    if (g.ok) { localStorage.setItem(flagKey, tag); return; }
+    if (g.status !== 404) return;
+    const body = { message: "Auto backup " + name, content: btoa(unescape(encodeURIComponent(DB_RAW))), branch: "main" };
+    const r = await fetchWithTimeout(url, { method: "PUT", headers: ghH(), body: JSON.stringify(body) }, 30000);
+    if (r.ok) localStorage.setItem(flagKey, tag);
+  } catch {}
+}
+
+// Downloads the whole database to the phone/computer as a .json file.
+async function downloadBackupFile() {
+  const db = await loadDB(true);
+  if (!LAST_LOAD_OK) { alert("Could not read the latest data from GitHub, so no backup was made. " + (LAST_SYNC_ERROR || "")); return false; }
+  const d = new Date(), p2 = x => String(x).padStart(2, "0");
+  const stamp = d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()) + "_" + p2(d.getHours()) + p2(d.getMinutes());
+  const blob = new Blob([JSON.stringify(db)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = `sision-marks-backup-${stamp}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  return true;
+}
+
+// Device-side safety copy of marks being saved. Kept until the save is confirmed
+// by reading it back from GitHub; offered for restore if the marks are missing later.
+function draftSave(k, payload) { try { localStorage.setItem("sision_draft_" + k, JSON.stringify({ t: Date.now(), payload })); } catch {} }
+function draftLoad(k) { try { const s = localStorage.getItem("sision_draft_" + k); return s ? JSON.parse(s) : null; } catch { return null; } }
+function draftClear(k) { try { localStorage.removeItem("sision_draft_" + k); } catch {} }
+
+// Reads GitHub back and confirms every expected mark is really there.
+// expected = { learnerName: { subject: value } }
+async function verifyScores(key, expected) {
+  for (let i = 0; i < 3; i++) {
+    if (i > 0) await new Promise(r => setTimeout(r, 1200 * i));
+    const db = await loadDB(true);
+    if (!LAST_LOAD_OK) continue;
+    const arr = Array.isArray(db[key]) ? db[key] : [];
+    const by = {}; arr.forEach(l => { by[l.name] = l; });
+    let bad = 0;
+    Object.entries(expected).forEach(([nm, subs]) => Object.entries(subs).forEach(([sub, val]) => {
+      const got = by[nm] && by[nm].scores ? by[nm].scores[sub] : undefined;
+      if (String(got ?? "") !== String(val ?? "")) bad++;
+    }));
+    if (!bad) return true;
+  }
+  return false;
 }
 
 async function loadShared(key, fb) {
@@ -1135,6 +1221,9 @@ function SetupScreen({ onDone }) {
               📋 Copy Teacher Link
             </button>
             <button style={{ ...btn("#555"), marginTop: 6 }} onClick={onDone}>Open App</button>
+            <button style={{ ...btn("#7c3aed"), marginTop: 6 }} onClick={downloadBackupFile}>💾 Download Backup (all marks)</button>
+            <button style={{ ...btn("#0e7490"), marginTop: 6 }} onClick={async () => { const n = await createBackup("manual"); alert(n ? "Backup saved in GitHub: backups/" + n : "Backup failed. " + (LAST_SYNC_ERROR || "Check your connection.")); }}>☁ Back up to GitHub now</button>
+            <div style={{ fontSize: 11, color: "#555", marginTop: 8 }}>The app also makes an automatic backup in your repo's <b>backups</b> folder before saves (up to 6 per day).</div>
           </div>
         )}
 
@@ -2268,7 +2357,7 @@ function ReportCard({ learner, grade, stream, term, year, classTeacher, closingD
   const hasOverall = overallTotal>0;
   // Stretch the subject table to fill the page: fewer subjects => taller rows (all in mm so it prints the same everywhere).
   const nSub = SUBJECTS.length;
-  const rowH = Math.max(7, Math.min(15, 60 / nSub));
+  const rowH = Math.max(7, Math.min(16, 84 / nSub));
   const big = nSub <= 5;
   return (
     <div className="report-card" data-name={learner.name} style={RC.page}>
@@ -3002,6 +3091,20 @@ function App() {
   const [subjectSaved, setSubjectSaved]     = useState(false);
   const [subjectNotConnected, setSubjectNotConnected] = useState(false);
   const [subjectHasExistingRecord, setSubjectHasExistingRecord] = useState(true);
+  const [subjectLoadError, setSubjectLoadError] = useState("");
+  const subjectBaselineRef = useRef({});   // scores as last loaded/saved, to know what was really edited
+  const subjectLoadIdRef = useRef(0);      // ignores out-of-date loads (fast term/subject switching)
+  function subjectIsDirty() {
+    const b = subjectBaselineRef.current || {};
+    return subjectList.some(r => String(r.score ?? "") !== String(b[r.name] ?? ""));
+  }
+  function guardSubjectChange(fn) {
+    return e => {
+      const v = e.target.value;
+      if (subjectIsDirty() && !window.confirm("You have marks typed that have NOT been uploaded yet. Changing this will discard them. Continue?")) return;
+      fn(v);
+    };
+  }
 
   function proceedAfterLogin(entry) {
     if (entry.classes.length === 1) {
@@ -3023,30 +3126,53 @@ function App() {
     }
   }
 
-    async function loadSubjectEntryList() {
+  async function loadSubjectEntryList() {
     if (!subjectSession || !subjectClass || !subjectChoice) return;
+    const myId = ++subjectLoadIdRef.current;
     setSubjectLoading(true);
     setSubjectNotConnected(false);
+    setSubjectLoadError("");
     try {
       if (!GH) { setSubjectNotConnected(true); setSubjectList([]); return; }
       await loadDB(true); // always fetch fresh so a class teacher's recent save shows up
+      if (myId !== subjectLoadIdRef.current) return;
+      if (!LAST_LOAD_OK) {
+        // Never show a blank list as if nothing had been saved.
+        setSubjectList([]);
+        setSubjectLoadError(LAST_SYNC_ERROR || "Could not load the latest marks from GitHub.");
+        return;
+      }
       let roster = await loadShared(learnersKey(subjectClass.grade, subjectClass.stream||""), null);
-      // Nothing saved online for this class yet? Use the school's built-in
-      // class list (2026) so subject teachers always see their learners.
       if (!Array.isArray(roster)) roster = null;
       if (!roster && Number(subjectYear) <= 2026) {
         roster = (INITIAL_LEARNERS[subjectClass.grade]||{})[subjectClass.stream||""] || [];
       }
       roster = roster || [];
-      const scoresArr = await loadShared(storageKey(subjectClass.grade, subjectClass.stream, subjectTerm, subjectYear), null);
+      const key = storageKey(subjectClass.grade, subjectClass.stream, subjectTerm, subjectYear);
+      const scoresArr = await loadShared(key, null);
       setSubjectHasExistingRecord(!!(scoresArr && scoresArr.length));
       const scoreMap = {};
       if (scoresArr) scoresArr.forEach(l => { scoreMap[l.name] = (l.scores && l.scores[subjectChoice]) || ""; });
       const list = roster.map(l => ({ name: l.name, score: scoreMap[l.name] || "" }));
       list.sort((a,b)=>a.name.localeCompare(b.name));
-      setSubjectList(list);
+      subjectBaselineRef.current = Object.fromEntries(list.map(r => [r.name, r.score]));
+      // Marks typed on this device earlier that never made it to GitHub: offer to put them back.
+      let finalList = list;
+      const dk = `subj_${key}_${subjectChoice}`;
+      const dr = draftLoad(dk);
+      if (dr && dr.payload) {
+        const missing = list.filter(r => String(r.score ?? "") === "" && String(dr.payload[r.name] ?? "") !== "");
+        if (missing.length) {
+          if (window.confirm(`${missing.length} mark(s) you typed on this device (${new Date(dr.t).toLocaleString()}) are missing from the saved results. Put them back on the screen? You still need to tap Upload.`)) {
+            finalList = list.map(r => (String(r.score ?? "") === "" && String(dr.payload[r.name] ?? "") !== "") ? { ...r, score: dr.payload[r.name] } : r);
+          } else draftClear(dk);
+        } else draftClear(dk);
+      }
+      setSubjectList(finalList);
+    } catch (err) {
+      if (myId === subjectLoadIdRef.current) { setSubjectList([]); setSubjectLoadError("Something went wrong while loading. Please try again."); }
     } finally {
-      setSubjectLoading(false);
+      if (myId === subjectLoadIdRef.current) setSubjectLoading(false);
     }
   }
 
@@ -3056,11 +3182,8 @@ function App() {
     setSubjectSaving(true);
     try {
       const key = storageKey(subjectClass.grade, subjectClass.stream, subjectTerm, subjectYear);
-      // Safety check: if there's genuinely no existing record yet for this exact
-      // Term + Year + Class, warn before creating a fresh (blank-for-other-subjects)
-      // one — this is almost always a sign the Term/Year dropdown doesn't match
-      // what the class teacher used, not an intentional first-time entry.
       await loadDB(true);
+      if (!LAST_LOAD_OK) { alert(`Upload not done: ${LAST_SYNC_ERROR || "could not read the latest data."} Your entries are still on screen — do not close the app.`); return; }
       const existing = DB_CACHE && DB_CACHE[key];
       if (!existing || !existing.length) {
         const proceed = window.confirm(
@@ -3068,17 +3191,39 @@ function App() {
           `If other subjects already have marks entered for this class and term, this usually means the Term or Year selected above doesn't match — double-check them before continuing.\n\n` +
           `If this really is the first upload for this class/term, tap OK to continue.`
         );
-        if (!proceed) { setSubjectSaving(false); return; }
+        if (!proceed) return;
       }
-      const updates = {};
-      subjectList.forEach(row => { updates[row.name] = row.score; });
+      // Only send the marks that were actually typed/changed. Untouched rows are never
+      // sent, so an out-of-date screen can no longer overwrite someone else's marks with blanks.
+      const base = subjectBaselineRef.current || {};
+      let updates = {};
+      subjectList.forEach(row => { if (String(row.score ?? "") !== String(base[row.name] ?? "")) updates[row.name] = row.score; });
+      if (!Object.keys(updates).length) {
+        const filled = {};
+        subjectList.forEach(row => { if (String(row.score ?? "") !== "") filled[row.name] = row.score; });
+        if (!Object.keys(filled).length) { alert("Nothing to upload yet — no marks have been entered."); return; }
+        const exp = {}; Object.entries(filled).forEach(([n, v]) => { exp[n] = { [subjectChoice]: v }; });
+        if (await verifyScores(key, exp)) { alert("✓ All these marks are already saved."); return; }
+        updates = filled; // GitHub is missing them — send them again
+      }
+      const dk = `subj_${key}_${subjectChoice}`;
+      draftSave(dk, updates);
       const rosterNames = subjectList.map(row => row.name);
       const ok = await saveSubjectScores(key, subjectChoice, updates, rosterNames);
       if (ok) {
-        setSubjectSaved(true);
-        setTimeout(()=>setSubjectSaved(false), 2500);
+        const exp = {}; Object.entries(updates).forEach(([n, v]) => { exp[n] = { [subjectChoice]: v }; });
+        const verified = await verifyScores(key, exp);
+        if (verified) {
+          draftClear(dk);
+          subjectBaselineRef.current = Object.fromEntries(subjectList.map(r => [r.name, r.score]));
+          setSubjectHasExistingRecord(true);
+          setSubjectSaved(true);
+          setTimeout(()=>setSubjectSaved(false), 2500);
+        } else {
+          alert("GitHub accepted the upload but the marks could not be confirmed when read back. A copy is kept on this device. Please tap Upload again, and do not close the app.");
+        }
       } else {
-        alert(`Upload failed: ${LAST_SYNC_ERROR || "Unknown error."} Your entries are still on screen — do not close the app.`);
+        alert(`Upload failed: ${LAST_SYNC_ERROR || "Unknown error."} Your entries are still on screen (and kept on this device) — do not close the app.`);
       }
     } finally {
       setSubjectSaving(false);
@@ -3122,6 +3267,11 @@ function App() {
     doc.save(`${clsLabel.replace(/\s/g,"_")}_${subjectChoice}_${subjectTerm.replace(/\s/g,"_")}_${subjectYear}.pdf`);
   }
 
+  React.useEffect(() => {
+    function warnUnsaved(e) { if (page === "subjectEntry" && subjectIsDirty()) { e.preventDefault(); e.returnValue = ""; } }
+    window.addEventListener("beforeunload", warnUnsaved);
+    return () => window.removeEventListener("beforeunload", warnUnsaved);
+  });
   React.useEffect(() => {
     if (page === "subjectEntry") loadSubjectEntryList();
     // eslint-disable-next-line
@@ -3353,32 +3503,59 @@ function App() {
     return false;
   }
 
+  // Offers to put back marks typed on this device that never reached GitHub.
+  // Only fills cells that are EMPTY in the saved data, so newer marks are never overwritten.
+  function restoreDraftInto(lrns, sk) {
+    const dr = draftLoad("cls_" + sk);
+    if (!dr || !dr.payload) return { list: lrns, restored: false };
+    let missing = 0;
+    lrns.forEach(l => { const d = dr.payload[l.name]; if (!d) return; SUBJECTS.forEach(sub => { if (String(l.scores?.[sub] ?? "") === "" && String(d[sub] ?? "") !== "") missing++; }); });
+    if (!missing) { draftClear("cls_" + sk); return { list: lrns, restored: false }; }
+    if (!window.confirm(`${missing} mark(s) you typed on this device (${new Date(dr.t).toLocaleString()}) are missing from the saved results. Put them back on the screen? You still need to tap Save.`)) { draftClear("cls_" + sk); return { list: lrns, restored: false }; }
+    return { restored: true, list: lrns.map(l => {
+      const d = dr.payload[l.name]; if (!d) return l;
+      const sc = { ...(l.scores || {}) };
+      SUBJECTS.forEach(sub => { if (String(sc[sub] ?? "") === "" && String(d[sub] ?? "") !== "") sc[sub] = d[sub]; });
+      return { ...l, scores: sc };
+    }) };
+  }
+
   async function openClass() {
     setOpening(true);
     try {
       await loadDB(true); // always fetch fresh so other teachers' recent saves show up
+      if (!LAST_LOAD_OK) {
+        alert(`Could not load the latest marks from GitHub (${LAST_SYNC_ERROR || "connection problem"}). The class was NOT opened, so nothing can be overwritten. Please check your connection and try again.`);
+        return;
+      }
+      let draftRestored = false;
       const split = isSplitGrade(grade);
       if (split) {
         let e = await loadOneLearnersList(grade,"East");
         let w = await loadOneLearnersList(grade,"West");
         e = await loadOneScores(e,grade,"East");
         w = await loadOneScores(w,grade,"West");
+        baselineRef.current = { ...captureBaseline(e), ...captureBaseline(w) };
+        const re = restoreDraftInto(e, storageKey(grade,"East",term,year)); e = re.list;
+        const rw = restoreDraftInto(w, storageKey(grade,"West",term,year)); w = rw.list;
+        draftRestored = re.restored || rw.restored;
         setLearnersEast(e);
         setLearnersWest(w);
         setLearnersSingle([]);
-        baselineRef.current = { ...captureBaseline(e), ...captureBaseline(w) };
         if (!stream || (stream!=="East"&&stream!=="West")) setStream("East");
       } else {
         let s = await loadOneLearnersList(grade, "");
         s = await loadOneScores(s, grade, "");
+        baselineRef.current = captureBaseline(s);   // baseline = what is really saved
+        const rs = restoreDraftInto(s, storageKey(grade,"",term,year)); s = rs.list;
+        draftRestored = rs.restored;
         setLearnersSingle(s);
         setLearnersEast([]);
         setLearnersWest([]);
-        baselineRef.current = captureBaseline(s);
       }
       setPage("results");
       setSaved(false);
-      setDirty(false);
+      setDirty(draftRestored);
     } finally {
       setOpening(false);
     }
@@ -3393,30 +3570,44 @@ function App() {
     try {
       const split = isSplitGrade(grade);
       let ok = true;
+      const expectOf = (merged) => { const ex = {}; (merged||[]).forEach(l => { ex[l.name] = {}; SUBJECTS.forEach(sub => { ex[l.name][sub] = (l.scores||{})[sub]; }); }); return ex; };
+      const draftOf = (list) => { const o = {}; list.forEach(l => { o[l.name] = { ...(l.scores||{}) }; }); return o; };
+      let draftKeys = [];
       if (split) {
         const eastLocal = learnersEast.map(l=>({name:l.name,gender:l.gender||"",scores:l.scores}));
         const westLocal = learnersWest.map(l=>({name:l.name,gender:l.gender||"",scores:l.scores}));
+        draftSave("cls_" + storageKey(grade,"East",term,year), draftOf(eastLocal));
+        draftSave("cls_" + storageKey(grade,"West",term,year), draftOf(westLocal));
+        draftKeys = ["cls_" + storageKey(grade,"East",term,year), "cls_" + storageKey(grade,"West",term,year)];
         ok = await saveShared(learnersKey(grade,"East"), eastLocal.map(l=>({name:l.name,gender:l.gender}))) && ok;
         ok = await saveShared(learnersKey(grade,"West"), westLocal.map(l=>({name:l.name,gender:l.gender}))) && ok;
         const eastResult = await saveScoresSafely(storageKey(grade,"East",term,year), eastLocal, baselineRef.current);
         const westResult = await saveScoresSafely(storageKey(grade,"West",term,year), westLocal, baselineRef.current);
         ok = ok && eastResult.ok && westResult.ok;
         if (eastResult.ok && westResult.ok) {
+          const vE = await verifyScores(storageKey(grade,"East",term,year), expectOf(eastResult.merged));
+          const vW = await verifyScores(storageKey(grade,"West",term,year), expectOf(westResult.merged));
+          if (!(vE && vW)) { ok = false; LAST_SYNC_ERROR = "GitHub accepted the save but the marks could not be confirmed when read back. A copy is kept on this device. Tap Save again."; }
           setLearnersEast(prev => prev.map(l => { const m = eastResult.merged.find(x=>x.name===l.name); return m ? {...l, scores:m.scores} : l; }));
           setLearnersWest(prev => prev.map(l => { const m = westResult.merged.find(x=>x.name===l.name); return m ? {...l, scores:m.scores} : l; }));
           baselineRef.current = { ...captureBaseline(eastResult.merged), ...captureBaseline(westResult.merged) };
         }
       } else {
         const singleLocal = learnersSingle.map(l=>({name:l.name,gender:l.gender||"",scores:l.scores}));
+        draftSave("cls_" + storageKey(grade,"",term,year), draftOf(singleLocal));
+        draftKeys = ["cls_" + storageKey(grade,"",term,year)];
         ok = await saveShared(learnersKey(grade,""), singleLocal.map(l=>({name:l.name,gender:l.gender}))) && ok;
         const result = await saveScoresSafely(storageKey(grade,"",term,year), singleLocal, baselineRef.current);
         ok = ok && result.ok;
         if (result.ok) {
+          const vS = await verifyScores(storageKey(grade,"",term,year), expectOf(result.merged));
+          if (!vS) { ok = false; LAST_SYNC_ERROR = "GitHub accepted the save but the marks could not be confirmed when read back. A copy is kept on this device. Tap Save again."; }
           setLearnersSingle(prev => prev.map(l => { const m = result.merged.find(x=>x.name===l.name); return m ? {...l, scores:m.scores} : l; }));
           baselineRef.current = captureBaseline(result.merged);
         }
       }
       if (ok) {
+        draftKeys.forEach(draftClear);
         setSaved(true); setDirty(false); setTimeout(()=>setSaved(false), 2500);
       } else {
         alert(`Save failed: ${LAST_SYNC_ERROR || "Unknown error."} Your changes are still on screen but NOT saved yet - do not close the app.`);
@@ -3964,11 +4155,13 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
       });
       const list = [...getLearnersByStream(stream)];
       let updated=0, added=0;
+      const normName = n => String(n||"").replace(/\s+/g," ").trim().toUpperCase();
+      const unmatched = [];
       for (let r=1;r<rows.length;r++){
         const row = rows[r];
         const rawName = (row[0]||"").trim();
         if (!rawName) continue;
-        const name = rawName.toUpperCase();
+        const name = normName(rawName);
         const newScores = {};
         let any=false;
         SUBJECTS.forEach(s=>{
@@ -3981,13 +4174,21 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
           }
         });
         if (!any) continue;
-        const idx = list.findIndex(l=>l.name===name);
+        const idx = list.findIndex(l=>normName(l.name)===name);
         if (idx>-1) { list[idx] = {...list[idx], scores:{...list[idx].scores,...newScores}}; updated++; }
-        else { list.push({name, scores:{...blankScores(),...newScores}}); added++; }
+        else unmatched.push({name, newScores});
+      }
+      // Names that match nobody are usually typos. Never add them silently: a typo would
+      // create a duplicate learner and the real learner would be left without marks.
+      if (unmatched.length) {
+        const shown = unmatched.slice(0,12).map(u=>u.name).join("\n");
+        if (window.confirm(`${unmatched.length} name(s) in the file do not match any learner in this class:\n\n${shown}${unmatched.length>12?"\n…":""}\n\nOK = add them as NEW learners.\nCancel = skip them (fix the spelling in the CSV and import again).`)) {
+          unmatched.forEach(u=>{ list.push({name:u.name, scores:{...blankScores(),...u.newScores}}); added++; });
+        }
       }
       setLearnersByStream(stream, list);
       setDirty(true);
-      alert(`Import complete: ${updated} learner(s) updated, ${added} new learner(s) added.`);
+      alert(`Import complete: ${updated} learner(s) updated, ${added} new learner(s) added${unmatched.length&&!added?`, ${unmatched.length} unmatched name(s) skipped`:""}. Tap Save to keep the changes.`);
     } catch (e) {
       alert("Could not read that file. Please make sure it's a CSV exported from Excel.");
     }
@@ -4260,14 +4461,14 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
           <div style={S.topTitle}>{subjectSession.name} · {subjectChoice} · {clsLabel}</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
             {subjectSession.subjects.length > 1 && (
-              <select style={S.select} value={subjectChoice} onChange={e=>setSubjectChoice(e.target.value)}>
+              <select style={S.select} value={subjectChoice} onChange={guardSubjectChange(setSubjectChoice)}>
                 {subjectSession.subjects.map(s=><option key={s} value={s}>{s}</option>)}
               </select>
             )}
-            <select style={S.select} value={subjectTerm} onChange={e=>setSubjectTerm(e.target.value)}>
+            <select style={S.select} value={subjectTerm} onChange={guardSubjectChange(setSubjectTerm)}>
               {termsFor(subjectClass ? subjectClass.grade : "").map(t=><option key={t} value={t}>{t}</option>)}
             </select>
-            <select style={S.select} value={subjectYear} onChange={e=>setSubjectYear(e.target.value)}>
+            <select style={S.select} value={subjectYear} onChange={guardSubjectChange(setSubjectYear)}>
               {YEARS.map(y=><option key={y} value={y}>{y}</option>)}
             </select>
             <button style={{...S.ghostBtn,...(subjectSaved?{background:"#e8f5e9",color:"#2e7d32",borderColor:"#2e7d32"}:{})}}
@@ -4284,6 +4485,12 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
         )}
         {subjectLoading ? (
           <div style={{padding:20,textAlign:"center",color:"#888"}}>Loading class list…</div>
+        ) : subjectLoadError ? (
+          <div style={{padding:20,textAlign:"center"}}>
+            <div style={{color:"#b71c1c",fontWeight:600,marginBottom:10}}>Could not load the saved marks.</div>
+            <div style={{color:"#555",fontSize:13,marginBottom:16}}>{subjectLoadError} Nothing has been changed. Check your connection and try again.</div>
+            <button style={S.btn} onClick={loadSubjectEntryList}>↻ Try again</button>
+          </div>
         ) : subjectNotConnected ? (
           <div style={{padding:20,textAlign:"center"}}>
             <div style={{color:"#b71c1c",fontWeight:600,marginBottom:10}}>This device isn't connected to GitHub yet.</div>
@@ -4389,7 +4596,7 @@ ${autoPrint ? "<scr"+"ipt>window.onload=function(){setTimeout(function(){window.
             setPage("home");
           }}>← Back</button>
           <div style={S.topTitle}>{label} · {term} {year}
-            <span style={{display:"block",fontWeight:400,fontSize:10,color:"#777"}}>Saved locally on this laptop/browser only — not shared with anyone else</span>
+            <span style={{display:"block",fontWeight:400,fontSize:10,color:"#777"}}>Saved to the shared GitHub database</span>
             {dirty && <span style={{display:"inline-block",marginTop:3,background:"#b94a2c",color:"#fff",fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:10}}>● Unsaved changes</span>}
           </div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
